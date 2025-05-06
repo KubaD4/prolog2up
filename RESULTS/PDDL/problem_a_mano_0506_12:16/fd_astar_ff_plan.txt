@@ -1,0 +1,4 @@
+(move-onblock-to-table-start a1 b4 b1 loc_1_1 loc_10_10)
+(move-onblock-to-table-end a1 b4 loc_1_1 loc_10_10)
+(move-onblock-to-block-start a1 b5 b4 b2 loc_2_2 loc_10_10)
+(move-onblock-to-block-end a1 b5 b4 loc_2_2 loc_10_10)

@@ -1,0 +1,12 @@
+Planner Comparison Report
+Domain: /Users/kuba/prolog_pddl_unifiedPlanning/PDDL/domain_a_mano.pddl
+Problem: /Users/kuba/prolog_pddl_unifiedPlanning/PDDL/problem_a_mano.pddl
+Generated: 2025-05-06 12:16:48
+System: Darwin 24.4.0
+
++---------------+-------------+---------+-------------+-----------------+--------------------+-----------------+
+|    Planner    |    Search   | Success | Plan Length | Search Time (s) |   Total Time (s)   | Expanded States |
++---------------+-------------+---------+-------------+-----------------+--------------------+-----------------+
+| fast_downward | lazy_greedy |   Yes   |      10     |     0.142331    | 2.9693429470062256 |       151       |
+| fast_downward |   astar_ff  |   Yes   |      4      |     0.087017    | 3.0304219722747803 |        7        |
++---------------+-------------+---------+-------------+-----------------+--------------------+-----------------+

@@ -1,6 +1,9 @@
 import unified_planning as up
-import unified_planning.model.fluent
 from unified_planning.shortcuts import *
+from unified_planning.model import Variable, InstantaneousAction, Problem
+from unified_planning.io import PDDLWriter
+from unified_planning.model.operators import OperatorKind
+
 
 
 #   ------------    USER TYPES     -----------
@@ -112,34 +115,28 @@ if __name__ == "__main__":
     
     planning(engine_name)
 
+def export_to_pddl():
+    """Export the problem to PDDL files and print the contents."""
+    print("\nSTART PDDL Exporting...")
+    writer = PDDLWriter(problem)
+    
+    # Write to files
+    domain_filename = "quickstart_domain.pddl"
+    problem_filename = "quickstart_problem.pddl"
+    
+    writer.write_domain(domain_filename)
+    writer.write_problem(problem_filename)
+    
+    print(f"Domain written to: {domain_filename}")
+    print(f"Problem written to: {problem_filename}")
+    
+    print("\nDOMAIN PDDL:")
+    domain_str = writer.get_domain()
+    #print(domain_str[:1000] + "..." if len(domain_str) > 1000 else domain_str)
+    
+    print("\nPROBLEM PDDL:")
+    problem_str = writer.get_problem()
+    #print(problem_str[:1000] + "..." if len(problem_str) > 1000 else problem_str)
+    
 
-
-
-#   ---------   Test with Objects and other things  ---------
-
-Person = UserType('Person')
-
-# For a specific person p, destination(p) would tell you which Location is that person's destination
-#   - "destination" is the name of the fluent
-#   - Location is the return type (meaning this fluent will return a Location)
-#   - for any Person, you can determine their destination location
-destination = Fluent("destination", Location, Person=Person)
-
-# Create location objects
-trieste = Object("Trieste", Location)
-rome = Object("Rome", Location)
-milan = Object("Milan", Location)
-
-# Create person objects
-gigi = Object("Gigi", Person)
-mario = Object("Mario", Person)
-
-# Add all objects to the problem
-problem.add_objects([trieste, rome, milan, gigi, mario])
-
-# Add the destination fluent to the problem
-problem.add_fluent(destination)
-
-# Set initial values for destinations
-problem.set_initial_value(destination(gigi), trieste)
-problem.set_initial_value(destination(mario), rome)
+export_to_pddl()
