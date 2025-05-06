@@ -1,7 +1,5 @@
 # RoboticsInternship
 
-# Prolog, PDDL e Unified Planning
-
 La cartella è organizzata come segue:
 ```
 .
@@ -10,13 +8,20 @@ La cartella è organizzata come segue:
 │   ├── problem_a_mano.pddl
 │   └── run_plan.py
 ├── PROLOG
-│   └── kb_hl.pl
-└── UNIFIED_PLANNING
-    ├── blocks_domain.pddl
-    ├── blocks_problem.pddl
-    ├── kb_hl.py
-    └── quickstart.py
+│   ├── kb_hl.pl
+│   └── small_kb_hl.pl
+├── UNIFIED_PLANNING
+│    ├── blocks_domain.pddl
+│    ├── blocks_problem.pddl
+│    ├── kb_hl.py
+│    └── quickstart.py
+├── CONVERTER
+│    ├── converter.py
+│    └── prolog2up.py
+└── RESULTS
 ```
+
+# Prolog, PDDL e Unified Planning
 
 ## Requisiti
 
@@ -113,7 +118,7 @@ Lo script creerà una directory con i risultati, incluso il piano trovato, le st
 
 ### Sezione Unified Planning
 
-Questa sezione utilizza il framework Unified Planning per creare e risolvere problemi di pianificazione e generare file PDDL. (Solo generatai e non utilizzati)
+Questa sezione utilizza il framework Unified Planning per creare e risolvere problemi di pianificazione e generare file PDDL. 
 
 1. **Esecuzione dell'esempio dei blocchi**
    ```bash
@@ -162,3 +167,42 @@ Per la realizzazione degli script di risoluzione che vanno a confrontare vari al
 
 Ed infine per riordinare/pulire/simili il codice 
 
+# Convertitore da Prolog a Unified Planning
+
+La sezione del convertitore permette di trasformare automaticamente codice Prolog in rappresentazioni Python utilizzando il framework Unified Planning, generando anche i relativi file PDDL.
+
+### Requisiti per il Convertitore
+
+1. **Python 3.8+**
+   ```bash
+   # Verifica la tua versione di Python
+   python3 --version
+   ```
+
+2. **Unified Planning**
+   ```bash
+   pip3 install unified-planning
+   pip3 install unified-planning[engines]
+   ```
+
+3. **Pyswip** (interfaccia Python per SWI-Prolog)
+   ```bash
+   pip3 install pyswip
+   ```
+
+4. **SWI-Prolog** (come indicato nella sezione Prolog)
+
+### Utilizzo del Convertitore
+
+Per avviare il convertitore, eseguire:
+```bash
+python3 CONVERTER/converter.py
+```
+
+Il convertitore:
+1. Legge il file Prolog di input (`small_kb_hl.pl` o quello specificato)
+2. Converte le definizioni Prolog in costrutti Unified Planning
+3. Genera il codice Python equivalente
+4. Crea i file PDDL corrispondenti, nella cartella **RESULTS/**:
+   - `converter_pddl_result_domain.pddl`
+   - `converter_pddl_result_problem.pddl`
