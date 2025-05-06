@@ -18,7 +18,18 @@ La cartella è organizzata come segue:
 ├── CONVERTER
 │    ├── converter.py
 │    └── prolog2up.py
-└── RESULTS
+├── RESULTS
+│   ├── CONVERTER
+│   │   ├── converter_pddl_result_domain.pddl
+│   │   └── converter_pddl_result_problem.pddl
+│   ├── PDDL
+│   │   └── problem_a_mano_0506_12:16
+│   │       ├── best_solution_summary.txt
+│   │       ├── domain_a_mano.pddl
+│   │       └── problem_a_mano.pddl
+│   └── UP
+│       ├── UP_generated_domain.pddl
+│       └── UP_generated_problem.pddl
 ```
 
 # Prolog, PDDL e Unified Planning
