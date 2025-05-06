@@ -1,0 +1,3 @@
+Planner,Search,Success,Plan Length,Search Time,Total Time,Expanded States,Error
+fast_downward,lazy_greedy,Yes,10,0.142331,2.9693429470062256,151,
+fast_downward,astar_ff,Yes,4,0.087017,3.0304219722747803,7,

@@ -1,0 +1,17 @@
+Best Solution Summary
+Domain: /Users/kuba/prolog_pddl_unifiedPlanning/PDDL/domain_a_mano.pddl
+Problem: /Users/kuba/prolog_pddl_unifiedPlanning/PDDL/problem_a_mano.pddl
+Generated: 2025-05-06 12:16:48
+
+Planner: fast_downward
+Search algorithm: astar_ff
+Plan length: 4
+Search time: 0.087017 seconds
+Total time: 3.0304219722747803 seconds
+Expanded states: 7
+
+Plan:
+1. (move-onblock-to-table-start a1 b4 b1 loc_1_1 loc_10_10)
+2. (move-onblock-to-table-end a1 b4 loc_1_1 loc_10_10)
+3. (move-onblock-to-block-start a1 b5 b4 b2 loc_2_2 loc_10_10)
+4. (move-onblock-to-block-end a1 b5 b4 loc_2_2 loc_10_10)

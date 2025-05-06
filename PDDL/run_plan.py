@@ -478,9 +478,12 @@ class PlannerComparisonTool:
         if output_dir:
             self.output_dir = os.path.abspath(output_dir)
         else:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%m%d_%H%M")
             problem_name = os.path.splitext(os.path.basename(problem_file))[0]
-            self.output_dir = os.path.abspath(f"planner_results_{problem_name}_{timestamp}")
+            # Create path to RESULTS/PDDL directory
+            results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(domain_file))), "RESULTS", "PDDL")
+            # Create subfolder with problem name and timestamp
+            self.output_dir = os.path.join(results_dir, f"{problem_name}_{timestamp}")
         
         # Create output directory if it doesn't exist
         if not os.path.exists(self.output_dir):
