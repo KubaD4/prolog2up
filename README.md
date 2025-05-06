@@ -161,4 +161,4 @@ Per la realizzazione degli script di risoluzione che vanno a confrontare vari al
 2. script che andassero a combinare tante metologie diverse, senza doverle implementare tutte a mano
 
 Ed infine per riordinare/pulire/simili il codice 
->>>>>>> 1510d11 (Initial commit: hand-written pddl files, unified planning python code that generates the pddl files, other files (tests...))
+
