@@ -170,14 +170,6 @@ Per istruzioni dettagliate su come utilizzare questo file con il framework PLANT
 prolog_planner % swipl -l planner.pl -t "plan(4)."
 ```
 
-## Conclusione
-
-Per la realizzazione degli script di risoluzione che vanno a confrontare vari algoritmi ho scelto di aiutarmi tramite l'utilizzo di Claude (a partire da codici scritti a mano) in modo da migliorarli ed avere 
-1. output ben formattati
-2. script che andassero a combinare tante metologie diverse, senza doverle implementare tutte a mano
-
-Ed infine per riordinare/pulire/simili il codice 
-
 # Convertitore da Prolog a Unified Planning
 
 La sezione del convertitore permette di trasformare automaticamente codice Prolog in rappresentazioni Python utilizzando il framework Unified Planning, generando anche i relativi file PDDL.
