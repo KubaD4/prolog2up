@@ -4,13 +4,14 @@ block(b2).
 pos(1,1).
 pos(2,2).
 agent(a1).
-
+mela(m1).
 % Stato iniziale
 init_state([
   ontable(b1), ontable(b2),
   at(b1,1,1), at(b2,2,2),
   clear(b1), clear(b2),
-  available(a1)
+  available(a1),
+  intera(m1)
 ]).
 
 % Stato goal
@@ -19,7 +20,8 @@ goal_state([
   on(b1, b2),
   at(b1,2,2), at(b2,2,2),
   clear(b1),
-  available(a1)
+  available(a1),
+  morsa(m1)
 ]).
 
 % Definizione delle azioni
@@ -44,3 +46,15 @@ action(move_table_to_block_end(Agent, Block1, Block2, X1, Y1, X2, Y2),
     add(on(Block1, Block2)), add(at(Block1, X2, Y2)), add(clear(Block1)), add(available(Agent))
   ]
 ).
+
+action(mangia_mela(Agent, Mela),
+  [intera(Mela), available(Agent)],
+  [],
+  [],
+  [agent(Agent), mela(Mela)],
+  [
+    del(intera(Mela)), del(available(Agent)),
+    add(morsa(Mela))
+  ]
+).
+
