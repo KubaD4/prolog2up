@@ -5,13 +5,15 @@ pos(1,1).
 pos(2,2).
 agent(a1).
 mela(m1).
+vegetale(carota1).
 % Stato iniziale
 init_state([
   ontable(b1), ontable(b2),
   at(b1,1,1), at(b2,2,2),
   clear(b1), clear(b2),
   available(a1),
-  intera(m1)
+  intera(m1),
+  cruda(carota1)
 ]).
 
 % Stato goal
@@ -21,7 +23,8 @@ goal_state([
   at(b1,2,2), at(b2,2,2),
   clear(b1),
   available(a1),
-  morsa(m1)
+  morsa(m1),
+  cotta(carota1)
 ]).
 
 % Definizione delle azioni
@@ -58,3 +61,13 @@ action(mangia_mela(Agent, Mela),
   ]
 ).
 
+action(cuoci(Agente, Verdura),
+  [available(Agente), cruda(Verdura)],
+  [],
+  [],
+  [agent(Agente), vegetale(Verdura)],
+  [
+    del(cruda(Verdura)),
+    add(cotta(Verdura))
+  ]
+).
