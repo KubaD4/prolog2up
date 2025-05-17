@@ -1,0 +1,38 @@
+[
+  {
+    "planner": "fast_downward",
+    "search": "lazy_greedy",
+    "success": false,
+    "plan": null,
+    "stats": {
+      "search_time": 1.1e-05,
+      "total_time": 0.11026215553283691,
+      "expanded_states": 0,
+      "generated_states": 0,
+      "variables": 1,
+      "operators": 0,
+      "process_time": 0.10979032516479492,
+      "wall_time": 0.10979032516479492
+    },
+    "returncode": 12,
+    "error": "Fast Downward exited with code 12"
+  },
+  {
+    "planner": "fast_downward",
+    "search": "astar_ff",
+    "success": false,
+    "plan": null,
+    "stats": {
+      "search_time": 1.8e-05,
+      "total_time": 0.08364701271057129,
+      "expanded_states": 0,
+      "generated_states": 0,
+      "variables": 1,
+      "operators": 0,
+      "process_time": 0.08345699310302734,
+      "wall_time": 0.08345699310302734
+    },
+    "returncode": 12,
+    "error": "Fast Downward exited with code 12"
+  }
+]
