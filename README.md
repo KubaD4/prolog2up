@@ -208,8 +208,4 @@ Il convertitore:
 3. Genera il codice Python equivalente
 4. Crea i file PDDL corrispondenti, nella cartella **RESULTS/**:
    - `converter_pddl_result_domain.pddl`
-<<<<<<< Updated upstream
    - `converter_pddl_result_problem.pddl`
-=======
-   - `converter_pddl_result_problem.pddl`
->>>>>>> Stashed changes
