@@ -1,0 +1,78 @@
+INFO     planner time limit: None
+INFO     planner memory limit: None
+
+INFO     Running translator.
+INFO     translator stdin: None
+INFO     translator time limit: None
+INFO     translator memory limit: None
+INFO     translator command line string: /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 /Users/kuba/test_pddl/downward/builds/release/bin/translate/translate.py /Users/kuba/prolog_pddl_unifiedPlanning/RESULTS/CONVERTER/converter_pddl_result_domain.pddl /Users/kuba/prolog_pddl_unifiedPlanning/RESULTS/CONVERTER/converter_pddl_result_problem.pddl --sas-file output.sas
+Parsing...
+Parsing: [0.000s CPU, 0.002s wall-clock]
+Normalizing task... [0.000s CPU, 0.000s wall-clock]
+Instantiating...
+Generating Datalog program... [0.000s CPU, 0.000s wall-clock]
+Normalizing Datalog program...
+Normalizing Datalog program: [0.000s CPU, 0.001s wall-clock]
+Preparing model... [0.000s CPU, 0.000s wall-clock]
+Generated 27 rules.
+Computing model... [0.000s CPU, 0.000s wall-clock]
+34 relevant atoms
+12 auxiliary atoms
+46 final queue length
+46 total queue pushes
+Completing instantiation... [0.000s CPU, 0.000s wall-clock]
+Instantiating: [0.000s CPU, 0.002s wall-clock]
+No relaxed solution! Generating unsolvable task...
+Translator variables: 1
+Translator derived variables: 0
+Translator facts: 2
+Translator goal facts: 1
+Translator mutex groups: 0
+Translator total mutex groups size: 0
+Translator operators: 0
+Translator axioms: 0
+Translator task size: 4
+warning: could not determine peak memory
+Writing output... [0.000s CPU, 0.000s wall-clock]
+Done! [0.000s CPU, 0.004s wall-clock]
+translate exit code: 0
+
+INFO     Running search (release).
+INFO     search stdin: output.sas
+INFO     search time limit: None
+INFO     search memory limit: None
+INFO     search command line string: /Users/kuba/test_pddl/downward/builds/release/bin/downward --search 'lazy_greedy([ff()])' --internal-plan-file sas_plan < output.sas
+[t=0.005222s, 410072864 KB] reading input...
+[t=0.005291s, 410072864 KB] done reading input!
+[t=0.006795s, 410072864 KB] Simplifying 0 unary operators... done! [0 unary operators]
+[t=0.006801s, 410072864 KB] time to simplify: 0.000007s
+[t=0.006803s, 410072864 KB] Initializing additive heuristic...
+[t=0.006805s, 410072864 KB] Initializing FF heuristic...
+[t=0.006811s, 410072864 KB] Building successor generator...done!
+[t=0.006816s, 410072864 KB] peak memory difference for successor generator creation: 0 KB
+[t=0.006818s, 410072864 KB] time for successor generation creation: 0.000001s
+[t=0.006820s, 410072864 KB] Variables: 1
+[t=0.006822s, 410072864 KB] FactPairs: 2
+[t=0.006824s, 410072864 KB] Bytes per state: 4
+[t=0.006835s, 410072864 KB] Conducting lazy best first search, (real) bound = 2147483647
+[t=0.006840s, 410072864 KB] Initial heuristic value for ff: infinity
+[t=0.006842s, 410072864 KB] Completely explored state space -- no solution!
+[t=0.006844s, 410072864 KB] Actual search time: 0.000007s
+[t=0.006846s, 410072864 KB] Expanded 0 state(s).
+[t=0.006846s, 410072864 KB] Reopened 0 state(s).
+[t=0.006846s, 410072864 KB] Evaluated 1 state(s).
+[t=0.006846s, 410072864 KB] Evaluations: 1
+[t=0.006846s, 410072864 KB] Generated 0 state(s).
+[t=0.006846s, 410072864 KB] Dead ends: 1 state(s).
+[t=0.006846s, 410072864 KB] Number of registered states: 1
+[t=0.006846s, 410072864 KB] Int hash set load factor: 1/1 = 1.000000
+[t=0.006846s, 410072864 KB] Int hash set resizes: 0
+[t=0.006846s, 410072864 KB] Search time: 0.000011s
+[t=0.006846s, 410072864 KB] Total time: 0.006846s
+Search stopped without finding a solution.
+Peak memory: 410072864 KB
+Remove intermediate file output.sas
+search exit code: 12
+
+Driver aborting after search
+INFO     Planner time: 0.06s

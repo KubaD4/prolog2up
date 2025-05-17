@@ -1,0 +1,3 @@
+Planner,Search,Success,Plan Length,Search Time,Total Time,Expanded States,Error
+fast_downward,lazy_greedy,No,N/A,1.1e-05,0.11026215553283691,0,Fast Downward exited with code 12
+fast_downward,astar_ff,No,N/A,1.8e-05,0.08364701271057129,0,Fast Downward exited with code 12

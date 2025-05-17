@@ -1,0 +1,12 @@
+Planner Comparison Report
+Domain: /Users/kuba/prolog_pddl_unifiedPlanning/RESULTS/CONVERTER/converter_pddl_result_domain.pddl
+Problem: /Users/kuba/prolog_pddl_unifiedPlanning/RESULTS/CONVERTER/converter_pddl_result_problem.pddl
+Generated: 2025-05-17 18:51:39
+System: Darwin 24.4.0
+
++---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
+|    Planner    |    Search   | Success | Plan Length | Search Time (s) |    Total Time (s)   | Expanded States |
++---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
+| fast_downward | lazy_greedy |    No   |     N/A     |     1.1e-05     | 0.11026215553283691 |        0        |
+| fast_downward |   astar_ff  |    No   |     N/A     |     1.8e-05     | 0.08364701271057129 |        0        |
++---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
