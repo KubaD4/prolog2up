@@ -1,8 +1,8 @@
 (define (problem extracted_domain-problem)
  (:domain extracted_domain-domain)
  (:objects
-   b1 b2 - block
    m1 - mela
+   b1 b2 - block
    a1 - agent
    loc_1_1 loc_2_2 - location
    carota1 - vegetale
