@@ -1,7 +1,7 @@
 (define (domain extracted_domain-domain)
  (:requirements :strips :typing)
- (:types generic agent block mela location vegetale)
- (:predicates (moving_table_to_block ?p0 - generic ?p1 - generic ?p2 - generic ?p3 - generic ?p4 - generic ?p5 - generic ?p6 - generic) (available ?a1 - agent) (on ?b1 - block ?b2 - block) (clear ?b1 - block) (intera ?m1 - mela) (morsa ?m1 - mela) (ontable ?b1 - block) (at_ ?b - block ?l - location) (cotta ?v1 - vegetale) (cruda ?v1 - vegetale))
+ (:types generic block agent mela vegetale location)
+ (:predicates (moving_table_to_block ?p0 - generic ?p1 - generic ?p2 - generic ?p3 - generic ?p4 - generic ?p5 - generic ?p6 - generic) (on ?b1 - block ?b2 - block) (available ?a1 - agent) (ontable ?b1 - block) (clear ?b1 - block) (morsa ?m1 - mela) (intera ?m1 - mela) (cotta ?v1 - vegetale) (at_ ?b - block ?l - location) (cruda ?v1 - vegetale))
  (:action move_table_to_block_start
   :parameters ( ?p0_0 - agent ?p1_0 - block ?p2_0 - block ?p3 - generic ?p4 - generic ?p5 - generic ?p6 - generic)
   :precondition (and (available ?p0_0) (ontable ?p1_0) (clear ?p1_0) (clear ?p2_0))
