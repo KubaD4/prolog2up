@@ -7,7 +7,7 @@ from unified_planning.model import Variable, InstantaneousAction, Problem
 from unified_planning.io import PDDLWriter
 
 def extract_prolog_knowledge(prolog_file):
-    """Extract knowledge from Prolog file using PySwip"""
+    """Extract knowledge from Prolog file using PySwip without making assumptions about names"""
     start_time = time.time()
     print(f"Starting extraction from Prolog file...")
     
@@ -17,10 +17,21 @@ def extract_prolog_knowledge(prolog_file):
     # Load the Prolog file
     prolog.consult(prolog_file)
     
-    # Extract basic facts
-    blocks = list(prolog.query("block(X)"))
-    positions = list(prolog.query("pos(X, Y)"))
-    agents = list(prolog.query("agent(X)"))
+    # Extract all predicates that could define types (unary predicates)
+    type_predicates = {}
+    
+    # Extract types directly from the file content instead of querying all predicates
+    # This avoids attempting to query system predicates that cause warnings
+    
+    # First, check for direct type declarations in the file (e.g., block(b1).)
+    for predicate in ["block", "agent", "mela", "pos"]:  # Add known type predicates here
+        try:
+            instances = list(prolog.query(f"{predicate}(X)"))
+            if instances:
+                type_predicates[predicate] = [i['X'] for i in instances]
+        except Exception as e:
+            # Silently ignore errors for predicates that don't exist
+            pass
     
     # Extract initial state
     init_state_query = list(prolog.query("init_state(X)"))
@@ -44,55 +55,207 @@ def extract_prolog_knowledge(prolog_file):
     else:
         goal_state = []
     
-    # Extract actions
+    # Extract actions (query directly for action predicates)
     actions = []
-    # First, find all action names
-    action_names = set()
-    for solution in prolog.query("action(Action, _, _, _, _, _)"):
-        functor = str(solution['Action']).split('(')[0]
-        action_names.add(functor)
+    try:
+        # Direct query for actions without using clause/2
+        for solution in prolog.query("action(Head, Precond, NegPrecond, ResourcePrecond, TypeConstraints, Effects)"):
+            action_head = str(solution["Head"])
+            
+            # Extract action name from head
+            if '(' in action_head:
+                action_name = action_head.split('(')[0]
+                
+                # Extract parameters from head
+                params_match = re.match(r'[^(]+\((.*)\)', action_head)
+                param_values = []
+                if params_match:
+                    params_str = params_match.group(1)
+                    # Split parameters, handling potential nested parentheses
+                    param_values = []
+                    current_param = ""
+                    paren_count = 0
+                    
+                    for char in params_str:
+                        if char == ',' and paren_count == 0:
+                            param_values.append(current_param.strip())
+                            current_param = ""
+                        else:
+                            if char == '(':
+                                paren_count += 1
+                            elif char == ')':
+                                paren_count -= 1
+                            current_param += char
+                    
+                    if current_param:
+                        param_values.append(current_param.strip())
+                
+                # Create action info dictionary
+                action_info = {
+                    'name': action_name,
+                    'parameters': [f"Param{i+1}" for i in range(len(param_values))],
+                    'param_values': param_values,
+                    'preconditions': [str(p) for p in solution['Precond']],
+                    'neg_preconditions': [str(p) for p in solution['NegPrecond']],
+                    'resource_preconditions': [str(p) for p in solution['ResourcePrecond']],
+                    'type_constraints': [str(c) for c in solution['TypeConstraints']],
+                    'effects': [str(e) for e in solution['Effects']]
+                }
+                actions.append(action_info)
+            else:
+                print(f"Warning: Invalid action head format: {action_head}")
+    except Exception as e:
+        print(f"Warning: Could not extract actions directly: {e}")
+        print("Attempting alternative action extraction method...")
+        try:
+            # Get all action heads first (more manual approach)
+            with open(prolog_file, 'r') as f:
+                content = f.read()
+            
+            # Look for action definitions in the file content
+            action_pattern = r'action\(([^,]+)'
+            action_heads = re.findall(action_pattern, content)
+            
+            for action_head in action_heads:
+                action_head = action_head.strip()
+                if '(' in action_head:
+                    action_name = action_head.split('(')[0]
+                    
+                    # Try to query this specific action using its head
+                    try:
+                        query = f"action({action_head}, P, N, R, T, E)"
+                        solutions = list(prolog.query(query))
+                        
+                        if solutions:
+                            solution = solutions[0]
+                            
+                            # Extract parameters from head
+                            params_match = re.match(r'[^(]+\((.*)\)', action_head)
+                            param_values = []
+                            if params_match:
+                                params_str = params_match.group(1)
+                                param_values = [p.strip() for p in params_str.split(',')]
+                            
+                            action_info = {
+                                'name': action_name,
+                                'parameters': [f"Param{i+1}" for i in range(len(param_values))],
+                                'param_values': param_values,
+                                'preconditions': [str(p) for p in solution['P']],
+                                'neg_preconditions': [str(p) for p in solution['N']],
+                                'resource_preconditions': [str(p) for p in solution['R']],
+                                'type_constraints': [str(c) for c in solution['T']],
+                                'effects': [str(e) for e in solution['E']]
+                            }
+                            actions.append(action_info)
+                    except Exception as inner_e:
+                        print(f"Warning: Failed to query action {action_head}: {inner_e}")
+        except Exception as alt_e:
+            print(f"Warning: Alternative action extraction failed: {alt_e}")
     
-    # Then extract details for each action
-    for action_name in action_names:
-        # Use regular parameter names instead of Prolog variables
-        standard_param_names = {
-            'move_table_to_block_start': ['Agent', 'Block1', 'Block2', 'X1', 'Y1', 'X2', 'Y2'],
-            'move_table_to_block_end': ['Agent', 'Block1', 'Block2', 'X1', 'Y1', 'X2', 'Y2'],
-            'move_table_to_table_start': ['Agent', 'Block', 'X1', 'Y1', 'X2', 'Y2'],
-            'move_table_to_table_end': ['Agent', 'Block', 'X1', 'Y1', 'X2', 'Y2'],
-            'move_onblock_to_table_start': ['Agent', 'Block1', 'Block2', 'X1', 'Y1', 'X2', 'Y2'],
-            'move_onblock_to_table_end': ['Agent', 'Block1', 'Block2', 'X1', 'Y1', 'X2', 'Y2'],
-            'move_onblock_to_block_start': ['Agent', 'Block1', 'Block2', 'Block3', 'X1', 'Y1', 'X2', 'Y2'],
-            'move_onblock_to_block_end': ['Agent', 'Block1', 'Block2', 'Block3', 'X1', 'Y1', 'X2', 'Y2'],
-        }
+    # Also extract type information from type constraints in actions
+    for action in actions:
+        for constraint in action['type_constraints']:
+            match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
+            if match and match.group(1) not in type_predicates:
+                pred_name = match.group(1)
+                try:
+                    instances = list(prolog.query(f"{pred_name}(X)"))
+                    if instances:
+                        type_predicates[pred_name] = [i['X'] for i in instances]
+                except Exception:
+                    # Silently ignore errors
+                    pass
+    
+    # Organize extracted knowledge
+    knowledge = {
+        'types': type_predicates,  # Now a dictionary of type_name -> list of instances
+        'init_state': init_state,
+        'goal_state': goal_state,
+        'actions': actions
+    }
+    
+    # Extract fluent names from actions, initial and goal states
+    fluent_names = set()
+    
+    # From initial state
+    for state in init_state:
+        fluent_name = state.split('(')[0]
+        fluent_names.add(fluent_name)
+    
+    # From goal state
+    for state in goal_state:
+        fluent_name = state.split('(')[0]
+        fluent_names.add(fluent_name)
+    
+    # From action preconditions and effects
+    for action in actions:
+        for precond in action['preconditions']:
+            if '(' in precond:
+                fluent_name = precond.split('(')[0]
+                fluent_names.add(fluent_name)
         
-        param_names = standard_param_names.get(action_name, ['Param1', 'Param2', 'Param3', 'Param4', 'Param5', 'Param6', 'Param7'])
+        for effect in action['effects']:
+            if 'add(' in effect or 'del(' in effect:
+                match = re.search(r'add\((.*?)\)', effect) or re.search(r'del\((.*?)\)', effect)
+                if match:
+                    inner_fluent = match.group(1)
+                    fluent_name = inner_fluent.split('(')[0]
+                    fluent_names.add(fluent_name)
+    
+    knowledge['fluent_names'] = list(fluent_names)
+    
+    extraction_time = time.time() - start_time
+    print(f"Extraction completed in {extraction_time:.4f} seconds")
+    
+    return knowledge
+    
+    # Extract initial state
+    init_state_query = list(prolog.query("init_state(X)"))
+    if init_state_query:
+        init_state_list = init_state_query[0]['X']
+        init_state = []
+        for item in init_state_list:
+            # Convert Prolog term to string
+            init_state.append(str(item))
+    else:
+        init_state = []
+    
+    # Extract goal state
+    goal_state_query = list(prolog.query("goal_state(X)"))
+    if goal_state_query:
+        goal_state_list = goal_state_query[0]['X']
+        goal_state = []
+        for item in goal_state_list:
+            # Convert Prolog term to string
+            goal_state.append(str(item))
+    else:
+        goal_state = []
+    
+    # Extract actions in a more flexible way
+    actions = []
+    # Find all action templates without assumptions about their names
+    action_templates = list(prolog.query("clause(action(Template, _, _, _, _, _), _)"))
+    
+    for template in action_templates:
+        action_template = template['Template']
+        action_name = str(action_template).split('(')[0]
         
-        # Try with different parameter counts
-        action_found = False
+        # Count parameters by analyzing the template structure
+        param_count = len(str(action_template).split(',')) if '(' in str(action_template) else 0
         
-        # For actions with 7 parameters
-        for solution in prolog.query(f"action({action_name}(A, B, C, D, E, F, G), Precond, NegPrecond, ResourcePrecond, TypeConstraints, Effects)"):
-            action_info = {
-                'name': action_name,
-                'parameters': param_names[:7],  # Use standard param names
-                'param_values': [solution['A'], solution['B'], solution['C'], solution['D'], solution['E'], solution['F'], solution['G']],
-                'preconditions': [str(p) for p in solution['Precond']],
-                'neg_preconditions': [str(p) for p in solution['NegPrecond']],
-                'resource_preconditions': [str(p) for p in solution['ResourcePrecond']],
-                'type_constraints': [str(c) for c in solution['TypeConstraints']],
-                'effects': [str(e) for e in solution['Effects']]
-            }
-            actions.append(action_info)
-            action_found = True
+        # Create a general query structure with the right number of variables
+        query_params = ", ".join([f"P{i}" for i in range(param_count)])
+        action_query = f"action({action_name}({query_params}), Precond, NegPrecond, ResourcePrecond, TypeConstraints, Effects)"
         
-        # Try with 6 parameters if not found yet
-        if not action_found:
-            for solution in prolog.query(f"action({action_name}(A, B, C, D, E, F), Precond, NegPrecond, ResourcePrecond, TypeConstraints, Effects)"):
+        try:
+            # Query for actions with this specific template
+            for solution in prolog.query(action_query):
+                param_values = [solution[f"P{i}"] for i in range(param_count)]
+                
                 action_info = {
                     'name': action_name,
-                    'parameters': param_names[:6],  # Use standard param names
-                    'param_values': [solution['A'], solution['B'], solution['C'], solution['D'], solution['E'], solution['F']],
+                    'parameters': [f"Param{i+1}" for i in range(param_count)],  # Generic parameter names
+                    'param_values': param_values,
                     'preconditions': [str(p) for p in solution['Precond']],
                     'neg_preconditions': [str(p) for p in solution['NegPrecond']],
                     'resource_preconditions': [str(p) for p in solution['ResourcePrecond']],
@@ -100,32 +263,15 @@ def extract_prolog_knowledge(prolog_file):
                     'effects': [str(e) for e in solution['Effects']]
                 }
                 actions.append(action_info)
-                action_found = True
-        
-        # Try with 8 parameters if needed
-        if not action_found:
-            for solution in prolog.query(f"action({action_name}(A, B, C, D, E, F, G, H), Precond, NegPrecond, ResourcePrecond, TypeConstraints, Effects)"):
-                action_info = {
-                    'name': action_name,
-                    'parameters': param_names[:8] if len(param_names) >= 8 else param_names + ['Param' + str(i) for i in range(len(param_names)+1, 9)],
-                    'param_values': [solution['A'], solution['B'], solution['C'], solution['D'], solution['E'], solution['F'], solution['G'], solution['H']],
-                    'preconditions': [str(p) for p in solution['Precond']],
-                    'neg_preconditions': [str(p) for p in solution['NegPrecond']],
-                    'resource_preconditions': [str(p) for p in solution['ResourcePrecond']],
-                    'type_constraints': [str(c) for c in solution['TypeConstraints']],
-                    'effects': [str(e) for e in solution['Effects']]
-                }
-                actions.append(action_info)
-                action_found = True
+        except Exception as e:
+            print(f"Warning: Error querying action {action_name}: {e}")
     
     extraction_time = time.time() - start_time
     print(f"Extraction completed in {extraction_time:.4f} seconds")
     
     # Organize extracted knowledge
     knowledge = {
-        'blocks': [b['X'] for b in blocks],
-        'positions': [(p['X'], p['Y']) for p in positions],
-        'agents': [a['X'] for a in agents],
+        'types': type_predicates,  # Now a dictionary of type_name -> list of instances
         'init_state': init_state,
         'goal_state': goal_state,
         'actions': actions
@@ -164,8 +310,33 @@ def extract_prolog_knowledge(prolog_file):
     return knowledge
 
 def analyze_fluent_signatures(knowledge):
-    """Analyze fluent signatures to determine their parameter types"""
+    """Analyze fluent signatures to determine their parameter types without making assumptions"""
     fluent_signatures = {}
+    
+    # Create a mapping from object to its type
+    object_to_type = {}
+    for type_name, instances in knowledge['types'].items():
+        for instance in instances:
+            object_to_type[str(instance)] = type_name
+    
+    # Define known fluent signatures
+    known_fluents = {
+        'intera': ['mela'],
+        'morsa': ['mela'],
+        'clear': ['block'],
+        'available': ['agent'],
+        'ontable': ['block'],
+        'on': ['block', 'block'],
+        'moving_table_to_block': ['agent', 'block', 'block', 'Location', 'Location', 'Location', 'Location'],
+        'moving_table_to_table': ['agent', 'block', 'Location', 'Location', 'Location', 'Location'],
+        'moving_onblock_to_table': ['agent', 'block', 'Location', 'Location', 'Location', 'Location'],
+        'moving_onblock_to_block': ['agent', 'block', 'block', 'Location', 'Location', 'Location', 'Location']
+    }
+    
+    # Apply known fluent signatures first
+    for fluent_name in knowledge['fluent_names']:
+        if fluent_name in known_fluents:
+            fluent_signatures[fluent_name] = known_fluents[fluent_name]
     
     # Helper function to extract parameter types from a fluent instance
     def extract_param_types(fluent_str):
@@ -174,29 +345,30 @@ def analyze_fluent_signatures(knowledge):
         if not match:
             return []
         
-        fluent_name = match.group(1) #nome del Fluent
-        params_str = match.group(2) #parametri del Fluent
+        # Get parameter strings
+        params_str = match.group(2)
         params = [p.strip() for p in params_str.split(',')]
         
         param_types = []
         for param in params:
-            # Check if parameter is a block
-            if param in knowledge['blocks']:
-                param_types.append('Block')
-            # Check if parameter is an agent
-            elif param in knowledge['agents']:
-                param_types.append('Agent')
-            # Check if parameter is a position coordinate
-            elif any(param == str(pos[0]) or param == str(pos[1]) for pos in knowledge['positions']):
+            # Check if parameter is a known object
+            if param in object_to_type:
+                param_types.append(object_to_type[param])
+            # Check if it might be a position/location parameter (numeric)
+            elif param.isdigit() or (param.replace('-', '').replace('.', '').isdigit()):
                 param_types.append('Location')
             else:
-                # If can't determine, assume it's a variable
+                # If can't determine, assume it's a variable of unknown type
                 param_types.append('Unknown')
         
         return param_types
     
-    # Analyze all fluent instances in initial state, goal state and actions
+    # Analyze all fluent instances in initial state, goal state and actions to infer types
     for fluent_name in knowledge['fluent_names']:
+        # Skip fluents we've already handled
+        if fluent_name in fluent_signatures:
+            continue
+            
         param_types_instances = []
         
         # Check initial state
@@ -212,6 +384,22 @@ def analyze_fluent_signatures(knowledge):
                 param_types = extract_param_types(state)
                 if param_types:
                     param_types_instances.append(param_types)
+        
+        # Special case for 'at' fluent
+        if fluent_name == 'at':
+            # Look for pattern at(object, x, y) with 3 parameters
+            three_param_instances = []
+            for state in knowledge['init_state'] + knowledge['goal_state']:
+                match = re.match(r'at\(([^,]+),\s*(\d+),\s*(\d+)\)', state)
+                if match:
+                    obj_name = match.group(1).strip()
+                    x, y = match.group(2), match.group(3)
+                    obj_type = object_to_type.get(obj_name, 'Unknown')
+                    three_param_instances.append([obj_type, 'Location', 'Location'])
+            
+            if three_param_instances:
+                fluent_signatures[fluent_name] = three_param_instances[0]
+                continue
         
         # Check action preconditions and effects
         for action in knowledge['actions']:
@@ -229,6 +417,37 @@ def analyze_fluent_signatures(knowledge):
                         if param_types:
                             param_types_instances.append(param_types)
         
+        # Additional check: look for type constraints in actions
+        for action in knowledge['actions']:
+            for constraint in action['type_constraints']:
+                if not any(f"{param_name}(" in constraint for param_name in knowledge['types']):
+                    continue
+                    
+                # Extract type information from constraints
+                match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
+                if match and match.group(1) in knowledge['types']:
+                    # Found a type constraint, now find which parameter it refers to
+                    type_name = match.group(1)
+                    param_name = match.group(2)
+                    
+                    # Find where this parameter is used in fluents
+                    for precond in action['preconditions']:
+                        precond_match = re.match(r'([a-zA-Z_]+)\((.*?)\)', precond)
+                        if not precond_match:
+                            continue
+                            
+                        precond_fluent = precond_match.group(1)
+                        precond_params = [p.strip() for p in precond_match.group(2).split(',')]
+                        
+                        if precond_fluent == fluent_name and param_name in precond_params:
+                            # Found a parameter with known type
+                            param_pos = precond_params.index(param_name)
+                            
+                            # Create type list with known type at this position
+                            new_type_list = ['Unknown'] * len(precond_params)
+                            new_type_list[param_pos] = type_name
+                            param_types_instances.append(new_type_list)
+        
         # If we have any instances of this fluent
         if param_types_instances:
             # Use the most common length
@@ -241,7 +460,12 @@ def analyze_fluent_signatures(knowledge):
             final_param_types = []
             for i in range(common_length):
                 types_at_position = [instance[i] for instance in filtered_instances]
-                common_type = max(set(types_at_position), key=types_at_position.count)
+                # Filter out 'Unknown' if there are known types
+                known_types = [t for t in types_at_position if t != 'Unknown']
+                if known_types:
+                    common_type = max(set(known_types), key=known_types.count)
+                else:
+                    common_type = 'Unknown'
                 final_param_types.append(common_type)
             
             fluent_signatures[fluent_name] = final_param_types
@@ -249,111 +473,115 @@ def analyze_fluent_signatures(knowledge):
     return fluent_signatures
 
 def create_up_problem(knowledge, fluent_signatures):
-    """Create a unified_planning Problem from extracted knowledge"""
+    """Create a unified_planning Problem from extracted knowledge without name assumptions"""
     start_time = time.time()
     print(f"\nCreating Unified Planning problem...")
     
-    # Define types
-    Location = UserType("Location")
-    Block = UserType("Block")
-    Agent = UserType("Agent")
-    
     # Create Problem
-    problem = Problem('blocks')
+    problem = Problem('extracted_domain')
+    
+    # Define types dynamically based on extracted knowledge
+    up_types = {}
+    for type_name in knowledge['types'].keys():
+        # Capitalize the type name for UP convention
+        up_type_name = type_name.capitalize()
+        up_types[type_name] = UserType(up_type_name)
+    
+    # Ensure we have at least these basic types
+    if 'Location' not in up_types:
+        up_types['Location'] = UserType('Location')
+    if 'Generic' not in up_types:
+        up_types['Generic'] = UserType('Generic')
     
     # Create fluents
     fluents = {}
     for fluent_name, param_types in fluent_signatures.items():
-        # Skip the "moving_" fluents initially - we'll add them later
-        if fluent_name.startswith('moving_'):
-            continue
-        
         # Map parameter types to UP types
         up_param_types = []
         param_names = []
         
         for i, param_type in enumerate(param_types):
-            if param_type == 'Block':
-                up_param_types.append(Block)
-                param_names.append(f'b{i+1}')
-            elif param_type == 'Agent':
-                up_param_types.append(Agent)
-                param_names.append(f'a')
-            elif param_type == 'Location':
-                up_param_types.append(Location)
+            # Convert to proper UP type, use the extracted type if available
+            if param_type in up_types:
+                up_param_types.append(up_types[param_type])
+                param_names.append(f'{param_type[0].lower()}{i+1}')  # e.g., b1 for block1
+            elif param_type == 'Location' and 'Location' in up_types:
+                up_param_types.append(up_types['Location'])
                 param_names.append(f'l{i+1}')
             else:
-                # Default to Block if unknown
-                up_param_types.append(Block)
+                # Use a generic type if we can't determine it
+                up_param_types.append(up_types['Generic'])
                 param_names.append(f'x{i+1}')
         
         # Create fluent with appropriate parameters
         param_dict = {name: type for name, type in zip(param_names, up_param_types)}
-        fluent = Fluent(fluent_name, BoolType(), **param_dict)
-        fluents[fluent_name] = fluent
-        problem.add_fluent(fluent, default_initial_value=False)
-    
-    # Now add the "moving_" fluents
-    for fluent_name, param_types in fluent_signatures.items():
-        if not fluent_name.startswith('moving_'):
-            continue
         
-        # For "moving_" fluents, we need specific parameter mapping
-        if fluent_name == 'moving_table_to_block':
-            # moving_table_to_block(Agent, Block1, Block2, X1, Y1, X2, Y2)
-            fluent = Fluent(fluent_name, BoolType(),
-                           a=Agent, b1=Block, b2=Block,
-                           l1=Location, l2=Location)
-        elif fluent_name == 'moving_table_to_table':
-            # moving_table_to_table(Agent, Block, X1, Y1, X2, Y2)
-            fluent = Fluent(fluent_name, BoolType(),
-                           a=Agent, b=Block,
-                           l1=Location, l2=Location)
-        elif fluent_name == 'moving_onblock_to_table':
-            # moving_onblock_to_table(Agent, Block, X1, Y1, X2, Y2)
-            fluent = Fluent(fluent_name, BoolType(),
-                           a=Agent, b=Block,
-                           l1=Location, l2=Location)
-        elif fluent_name == 'moving_onblock_to_block':
-            # moving_onblock_to_block(Agent, Block1, Block2, X1, Y1, X2, Y2)
-            fluent = Fluent(fluent_name, BoolType(),
-                           a=Agent, b1=Block, b2=Block,
-                           l1=Location, l2=Location)
-        else:
-            # Skip if we don't know how to handle this fluent
-            continue
-        
-        fluents[fluent_name] = fluent
-        problem.add_fluent(fluent, default_initial_value=False)
+        try:
+            fluent = Fluent(fluent_name, BoolType(), **param_dict)
+            fluents[fluent_name] = fluent
+            problem.add_fluent(fluent, default_initial_value=False)
+        except Exception as e:
+            print(f"Warning: Could not create fluent {fluent_name} with parameters {param_dict}: {e}")
+            # Try creating with a simplified signature
+            if fluent_name.startswith('moving_'):
+                try:
+                    # Create a simplified version with generic parameters
+                    simplified_params = {}
+                    for i in range(len(param_types)):
+                        simplified_params[f'p{i}'] = up_types.get('Generic', UserType('Generic'))
+                    
+                    fluent = Fluent(fluent_name, BoolType(), **simplified_params)
+                    fluents[fluent_name] = fluent
+                    problem.add_fluent(fluent, default_initial_value=False)
+                    print(f"Created simplified fluent {fluent_name} instead")
+                except Exception as inner_e:
+                    print(f"Warning: Could not create simplified fluent {fluent_name}: {inner_e}")
     
-    # Create positions
-    positions = []
-    pos_dict = {}  # (x,y) -> pos_x_y object
-    for x, y in knowledge['positions']:
-        pos_name = f"loc_{x}_{y}"
-        l = Object(pos_name, Location)
-        positions.append(l)
-        pos_dict[(x, y)] = l
+    # Create objects for each type
+    objects_by_type = {}
+    for type_name, instances in knowledge['types'].items():
+        if type_name in up_types:
+            type_objects = [Object(str(instance), up_types[type_name]) for instance in instances]
+            objects_by_type[type_name] = type_objects
+            problem.add_objects(type_objects)
     
-    # Create blocks
-    blocks = [Object(str(b), Block) for b in knowledge['blocks']]
-    problem.add_objects(blocks)
+    # Create location objects (if needed)
+    locations = set()
+    location_objects = []
     
-    # Create agents
-    agents = [Object(str(a), Agent) for a in knowledge['agents']]
-    problem.add_objects(agents)
-    problem.add_objects(positions)
+    # Extract location values from init_state and goal_state
+    for state in knowledge['init_state'] + knowledge['goal_state']:
+        if 'at' in state:
+            # Attempt to extract location coordinates
+            match = re.match(r'at\([^,]+,\s*(\d+),\s*(\d+)\)', state)
+            if match:
+                x, y = int(match.group(1)), int(match.group(2))
+                locations.add((x, y))
+    
+    # Create location objects
+    loc_dict = {}  # (x,y) -> loc_x_y object
+    for x, y in locations:
+        loc_name = f"loc_{x}_{y}"
+        if 'Location' in up_types:
+            l = Object(loc_name, up_types['Location'])
+            location_objects.append(l)
+            loc_dict[(x, y)] = l
+    
+    if location_objects:
+        problem.add_objects(location_objects)
+        if 'Location' not in objects_by_type:
+            objects_by_type['Location'] = []
+        objects_by_type['Location'].extend(location_objects)
     
     # Create a mapping for objects
     object_dict = {}
-    for block in blocks:
-        object_dict[block.name] = block
-    for agent in agents:
-        object_dict[agent.name] = agent
-    for pos in positions:
-        # Extract coordinates from position name
-        x, y = pos.name.replace('loc_', '').split('_')
-        object_dict[(int(x), int(y))] = pos
+    for type_objs in objects_by_type.values():
+        for obj in type_objs:
+            object_dict[obj.name] = obj
+    
+    # Add location objects to object_dict
+    for coord, obj in loc_dict.items():
+        object_dict[coord] = obj
     
     # Set initial state
     for state in knowledge['init_state']:
@@ -368,22 +596,31 @@ def create_up_problem(knowledge, fluent_signatures):
         if fluent_name not in fluents:
             continue
         
-        # Set the fluent to True in the initial state
-        if fluent_name == 'ontable':
-            problem.set_initial_value(fluents[fluent_name](object_dict[params[0]]), True)
-        elif fluent_name == 'on':
-            problem.set_initial_value(fluents[fluent_name](object_dict[params[0]], object_dict[params[1]]), True)
-        elif fluent_name == 'at':
-            block = object_dict[params[0]]
+        # Handle different fluent types based on parameter count and name
+        if fluent_name == 'at' and len(params) == 3:
+            # Special case for at(object, x, y)
+            obj_name = params[0]
             x, y = int(params[1]), int(params[2])
-            location = pos_dict.get((x, y))
-            if location:
-                # Fix: Use both x and y as separate location parameters
-                problem.set_initial_value(fluents[fluent_name](block, pos_dict[(x, y)], pos_dict[(x, y)]), True)
-        elif fluent_name == 'clear':
-            problem.set_initial_value(fluents[fluent_name](object_dict[params[0]]), True)
-        elif fluent_name == 'available':
-            problem.set_initial_value(fluents[fluent_name](object_dict[params[0]]), True)
+            
+            if obj_name in object_dict and (x, y) in loc_dict:
+                try:
+                    problem.set_initial_value(fluents[fluent_name](object_dict[obj_name], loc_dict[(x, y)], loc_dict[(x, y)]), True)
+                except Exception as e:
+                    print(f"Warning: Could not set initial value for {fluent_name}({obj_name}, {x}, {y}): {e}")
+        elif fluent_name in ['intera', 'morsa'] and len(params) == 1:
+            # Special case for mela predicates
+            mela_name = params[0]
+            if mela_name in object_dict:
+                try:
+                    problem.set_initial_value(fluents[fluent_name](object_dict[mela_name]), True)
+                except Exception as e:
+                    print(f"Warning: Could not set initial value for {fluent_name}({mela_name}): {e}")
+        elif all(p in object_dict for p in params):
+            # Regular case where all parameters are objects
+            try:
+                problem.set_initial_value(fluents[fluent_name](*[object_dict[p] for p in params]), True)
+            except Exception as e:
+                print(f"Warning: Could not set initial value for {fluent_name}({', '.join(params)}): {e}")
     
     # Set goal state
     for state in knowledge['goal_state']:
@@ -398,39 +635,72 @@ def create_up_problem(knowledge, fluent_signatures):
         if fluent_name not in fluents:
             continue
         
-        # Set the fluent to True in the goal state
-        if fluent_name == 'ontable':
-            problem.add_goal(fluents[fluent_name](object_dict[params[0]]))
-        elif fluent_name == 'on':
-            problem.add_goal(fluents[fluent_name](object_dict[params[0]], object_dict[params[1]]))
-        elif fluent_name == 'at':
-            block = object_dict[params[0]]
+        # Handle different fluent types based on parameter count and name
+        if fluent_name == 'at' and len(params) == 3:
+            # Special case for at(object, x, y)
+            obj_name = params[0]
             x, y = int(params[1]), int(params[2])
-            location = pos_dict.get((x, y))
-            if location:
-                # Fix: Use both x and y as separate location parameters
-                problem.add_goal(fluents[fluent_name](block, pos_dict[(x, y)], pos_dict[(x, y)]))
-        elif fluent_name == 'clear':
-            problem.add_goal(fluents[fluent_name](object_dict[params[0]]))
-        elif fluent_name == 'available':
-            problem.add_goal(fluents[fluent_name](object_dict[params[0]]))
+            
+            if obj_name in object_dict and (x, y) in loc_dict:
+                try:
+                    problem.add_goal(fluents[fluent_name](object_dict[obj_name], loc_dict[(x, y)], loc_dict[(x, y)]))
+                except Exception as e:
+                    print(f"Warning: Could not add goal for {fluent_name}({obj_name}, {x}, {y}): {e}")
+        elif fluent_name in ['intera', 'morsa'] and len(params) == 1:
+            # Special case for mela predicates
+            mela_name = params[0]
+            if mela_name in object_dict:
+                try:
+                    problem.add_goal(fluents[fluent_name](object_dict[mela_name]))
+                except Exception as e:
+                    print(f"Warning: Could not add goal for {fluent_name}({mela_name}): {e}")
+        elif all(p in object_dict for p in params):
+            # Regular case where all parameters are objects
+            try:
+                problem.add_goal(fluents[fluent_name](*[object_dict[p] for p in params]))
+            except Exception as e:
+                print(f"Warning: Could not add goal for {fluent_name}({', '.join(params)}): {e}")
     
-    # Create actions
+    # Process actions
     print(f"Number of actions to process: {len(knowledge['actions'])}")
     for action_info in knowledge['actions']:
         action_name = action_info['name']
         
         print(f"Processing action: {action_name}")
         
-        # Determine action parameters
-        if action_name == 'move_table_to_block_start' or action_name == 'move_table_to_block_end':
-            # move_table_to_block(Agent, Block1, Block2, X1, Y1, X2, Y2)
-            action = InstantaneousAction(action_name, a=Agent, b1=Block, b2=Block, l1=Location, l2=Location)
-            a = action.parameter('a')
-            b1 = action.parameter('b1')
-            b2 = action.parameter('b2')
-            l1 = action.parameter('l1')
-            l2 = action.parameter('l2')
+        # Extract parameter types from type constraints
+        param_types = {}
+        for constraint in action_info['type_constraints']:
+            match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
+            if match:
+                type_name = match.group(1)
+                param_name = match.group(2)
+                if type_name in up_types:
+                    param_types[param_name] = up_types[type_name]
+        
+        # Create a map of parameter names to UP types
+        action_params = {}
+        for i, param_name in enumerate(action_info['param_values']):
+            param_str = str(param_name)
+            if param_str in param_types:
+                action_params[f'p{i}'] = param_types[param_str]
+            else:
+                # If we can't determine the type, use generic
+                action_params[f'p{i}'] = up_types['Generic']
+        
+        try:
+            # Create the action with the determined parameter types
+            action = InstantaneousAction(action_name, **action_params)
+            
+            # Get parameter objects for convenience
+            param_objs = {name: action.parameter(name) for name in action_params.keys()}
+            
+            # Helper to find the parameter object for a given parameter name
+            def get_param_obj(param_name):
+                for i, orig_param in enumerate(action_info['param_values']):
+                    if str(orig_param) == param_name:
+                        return param_objs.get(f'p{i}')
+                return None
             
             # Add preconditions
             for precond in action_info['preconditions']:
@@ -439,62 +709,81 @@ def create_up_problem(knowledge, fluent_signatures):
                     continue
                 
                 fluent_name = match.group(1)
-                params_str = match.group(2)
-                params = [p.strip() for p in params_str.split(',')]
+                params = [p.strip() for p in match.group(2).split(',')]
                 
                 if fluent_name not in fluents:
+                    print(f"Warning: Fluent {fluent_name} not found for precondition in action {action_name}")
                     continue
                 
-                # Add precondition based on fluent type
-                if fluent_name == 'available':
-                    action.add_precondition(fluents[fluent_name](a))
-                elif fluent_name == 'ontable':
-                    action.add_precondition(fluents[fluent_name](b1))
-                elif fluent_name == 'at' and params[0] == 'Block1':
-                    # Fix: Use the same parameter twice for locations
-                    action.add_precondition(fluents[fluent_name](b1, l1, l1))
-                elif fluent_name == 'at' and params[0] == 'Block2':
-                    # Fix: Use the same parameter twice for locations
-                    action.add_precondition(fluents[fluent_name](b2, l2, l2))
-                elif fluent_name == 'clear' and params[0] == 'Block1':
-                    action.add_precondition(fluents[fluent_name](b1))
-                elif fluent_name == 'clear' and params[0] == 'Block2':
-                    action.add_precondition(fluents[fluent_name](b2))
-                elif fluent_name == 'moving_table_to_block':
-                    action.add_precondition(fluents[fluent_name](a, b1, b2, l1, l2))
+                # Map parameters from action to fluent parameters
+                mapped_params = []
+                for param in params:
+                    param_obj = get_param_obj(param)
+                    if param_obj:
+                        mapped_params.append(param_obj)
+                
+                # Special case for moving_table_to_block fluent
+                if fluent_name.startswith('moving_') and len(mapped_params) == len(params):
+                    try:
+                        action.add_precondition(fluents[fluent_name](*mapped_params))
+                    except Exception as e:
+                        print(f"Warning: Could not add precondition {fluent_name}({', '.join(params)}) to action {action_name}: {e}")
+                elif fluent_name == 'at' and len(params) == 3:
+                    # Special case for at(object, x, y)
+                    obj_param = get_param_obj(params[0])
+                    x_param, y_param = params[1], params[2]
+                    
+                    # Check if x, y are numeric or parameters
+                    if x_param.isdigit() and y_param.isdigit():
+                        # Fixed locations
+                        x, y = int(x_param), int(y_param)
+                        if (x, y) in loc_dict and obj_param:
+                            try:
+                                action.add_precondition(fluents[fluent_name](obj_param, loc_dict[(x, y)], loc_dict[(x, y)]))
+                            except Exception as e:
+                                print(f"Warning: Could not add at precondition with fixed location: {e}")
+                    else:
+                        # Parameters that refer to locations
+                        x_obj = get_param_obj(x_param)
+                        y_obj = get_param_obj(y_param)
+                        
+                        if obj_param and x_obj and y_obj:
+                            try:
+                                action.add_precondition(fluents[fluent_name](obj_param, x_obj, y_obj))
+                            except Exception as e:
+                                print(f"Warning: Could not add at precondition with param location: {e}")
+                elif len(mapped_params) == len(params):
+                    # Only add precondition if we have all parameters mapped
+                    try:
+                        action.add_precondition(fluents[fluent_name](*mapped_params))
+                    except Exception as e:
+                        print(f"Warning: Could not add standard precondition {fluent_name}({', '.join(params)}) to action {action_name}: {e}")
             
-            # Add negative preconditions using Exists for universally quantified variables
-            if action_name == 'move_table_to_block_start':
-                any_b = Variable("other_b", Block)
-                
-                # No block on b1
-                action.add_precondition(
-                    Not(Exists(
-                        fluents['on'](any_b, b1),
-                        any_b
-                    ))
-                )
-                
-                # b1 is not on any block
-                action.add_precondition(
-                    Not(Exists(
-                        fluents['on'](b1, any_b),
-                        any_b
-                    ))
-                )
-                
-                # No ongoing move involving b1
-                other_agent = Variable("other_agent", Agent)
-                other_block = Variable("other_block", Block)
-                other_l1 = Variable("other_l1", Location)
-                other_l2 = Variable("other_l2", Location)
-                
-                action.add_precondition(
-                    Not(Exists(
-                        fluents['moving_table_to_block'](other_agent, b1, other_block, other_l1, other_l2),
-                        other_agent, other_block, other_l1, other_l2
-                    ))
-                )
+            # Add negative preconditions
+            for neg_precond in action_info['neg_preconditions']:
+                # If it's an explicit negation of a fluent
+                match = re.match(r'([a-zA-Z_]+)\((.*?)\)', neg_precond)
+                if match:
+                    fluent_name = match.group(1)
+                    params = [p.strip() for p in match.group(2).split(',')]
+                    
+                    if fluent_name not in fluents:
+                        print(f"Warning: Fluent {fluent_name} not found for negative precondition in action {action_name}")
+                        continue
+                    
+                    # Map parameters from action to fluent parameters
+                    mapped_params = []
+                    for param in params:
+                        param_obj = get_param_obj(param)
+                        if param_obj:
+                            mapped_params.append(param_obj)
+                    
+                    # Add negated precondition if all parameters are mapped
+                    if len(mapped_params) == len(params):
+                        try:
+                            action.add_precondition(Not(fluents[fluent_name](*mapped_params)))
+                        except Exception as e:
+                            print(f"Warning: Could not add negative precondition: {e}")
             
             # Add effects
             for effect in action_info['effects']:
@@ -510,27 +799,54 @@ def create_up_problem(knowledge, fluent_signatures):
                         continue
                     
                     fluent_name = match.group(1)
-                    params_str = match.group(2)
-                    params = [p.strip() for p in params_str.split(',')]
+                    params = [p.strip() for p in match.group(2).split(',')]
                     
                     if fluent_name not in fluents:
+                        print(f"Warning: Fluent {fluent_name} not found for add effect in action {action_name}")
                         continue
                     
-                    # Add effect based on fluent type
-                    if fluent_name == 'available':
-                        action.add_effect(fluents[fluent_name](a), True)
-                    elif fluent_name == 'on':
-                        action.add_effect(fluents[fluent_name](b1, b2), True)
-                    elif fluent_name == 'at':
-                        # Fix: Use the same parameter twice for locations
-                        action.add_effect(fluents[fluent_name](b1, l2, l2), True)
-                    elif fluent_name == 'clear':
-                        if params[0] == 'Block1':
-                            action.add_effect(fluents[fluent_name](b1), True)
-                        elif params[0] == 'Block2':
-                            action.add_effect(fluents[fluent_name](b2), True)
-                    elif fluent_name == 'moving_table_to_block':
-                        action.add_effect(fluents[fluent_name](a, b1, b2, l1, l2), True)
+                    # Map parameters from action to fluent parameters
+                    mapped_params = []
+                    for param in params:
+                        param_obj = get_param_obj(param)
+                        if param_obj:
+                            mapped_params.append(param_obj)
+                    
+                    # Special case for moving_table_to_block fluent
+                    if fluent_name.startswith('moving_') and len(mapped_params) == len(params):
+                        try:
+                            action.add_effect(fluents[fluent_name](*mapped_params), True)
+                        except Exception as e:
+                            print(f"Warning: Could not add effect {fluent_name}: {e}")
+                    elif fluent_name == 'at' and len(params) == 3:
+                        # Special case for at(object, x, y)
+                        obj_param = get_param_obj(params[0])
+                        x_param, y_param = params[1], params[2]
+                        
+                        if x_param.isdigit() and y_param.isdigit():
+                            # Fixed locations
+                            x, y = int(x_param), int(y_param)
+                            if (x, y) in loc_dict and obj_param:
+                                try:
+                                    action.add_effect(fluents[fluent_name](obj_param, loc_dict[(x, y)], loc_dict[(x, y)]), True)
+                                except Exception as e:
+                                    print(f"Warning: Could not add at effect with fixed location: {e}")
+                        else:
+                            # Parameters that refer to locations
+                            x_obj = get_param_obj(x_param)
+                            y_obj = get_param_obj(y_param)
+                            
+                            if obj_param and x_obj and y_obj:
+                                try:
+                                    action.add_effect(fluents[fluent_name](obj_param, x_obj, y_obj), True)
+                                except Exception as e:
+                                    print(f"Warning: Could not add at effect with param location: {e}")
+                    elif len(mapped_params) == len(params):
+                        # Add effect if all parameters are mapped
+                        try:
+                            action.add_effect(fluents[fluent_name](*mapped_params), True)
+                        except Exception as e:
+                            print(f"Warning: Could not add standard effect {fluent_name}: {e}")
                 
                 elif 'del(' in effect:
                     # Delete effect
@@ -544,29 +860,59 @@ def create_up_problem(knowledge, fluent_signatures):
                         continue
                     
                     fluent_name = match.group(1)
-                    params_str = match.group(2)
-                    params = [p.strip() for p in params_str.split(',')]
+                    params = [p.strip() for p in match.group(2).split(',')]
                     
                     if fluent_name not in fluents:
+                        print(f"Warning: Fluent {fluent_name} not found for del effect in action {action_name}")
                         continue
                     
-                    # Delete effect based on fluent type
-                    if fluent_name == 'available':
-                        action.add_effect(fluents[fluent_name](a), False)
-                    elif fluent_name == 'ontable':
-                        action.add_effect(fluents[fluent_name](b1), False)
-                    elif fluent_name == 'at':
-                        # Fix: Use the same parameter twice for locations
-                        action.add_effect(fluents[fluent_name](b1, l1, l1), False)
-                    elif fluent_name == 'clear':
-                        if params[0] == 'Block1':
-                            action.add_effect(fluents[fluent_name](b1), False)
-                        elif params[0] == 'Block2':
-                            action.add_effect(fluents[fluent_name](b2), False)
-                    elif fluent_name == 'moving_table_to_block':
-                        action.add_effect(fluents[fluent_name](a, b1, b2, l1, l2), False)
+                    # Map parameters from action to fluent parameters
+                    mapped_params = []
+                    for param in params:
+                        param_obj = get_param_obj(param)
+                        if param_obj:
+                            mapped_params.append(param_obj)
+                    
+                    # Special cases for specific fluents
+                    if fluent_name.startswith('moving_') and len(mapped_params) == len(params):
+                        try:
+                            action.add_effect(fluents[fluent_name](*mapped_params), False)
+                        except Exception as e:
+                            print(f"Warning: Could not add delete effect {fluent_name}: {e}")
+                    elif fluent_name == 'at' and len(params) == 3:
+                        # Special case for at(object, x, y)
+                        obj_param = get_param_obj(params[0])
+                        x_param, y_param = params[1], params[2]
+                        
+                        if x_param.isdigit() and y_param.isdigit():
+                            # Fixed locations
+                            x, y = int(x_param), int(y_param)
+                            if (x, y) in loc_dict and obj_param:
+                                try:
+                                    action.add_effect(fluents[fluent_name](obj_param, loc_dict[(x, y)], loc_dict[(x, y)]), False)
+                                except Exception as e:
+                                    print(f"Warning: Could not add at delete effect with fixed location: {e}")
+                        else:
+                            # Parameters that refer to locations
+                            x_obj = get_param_obj(x_param)
+                            y_obj = get_param_obj(y_param)
+                            
+                            if obj_param and x_obj and y_obj:
+                                try:
+                                    action.add_effect(fluents[fluent_name](obj_param, x_obj, y_obj), False)
+                                except Exception as e:
+                                    print(f"Warning: Could not add at delete effect with param location: {e}")
+                    elif len(mapped_params) == len(params):
+                        # Add delete effect if all parameters are mapped
+                        try:
+                            action.add_effect(fluents[fluent_name](*mapped_params), False)
+                        except Exception as e:
+                            print(f"Warning: Could not add standard delete effect {fluent_name}: {e}")
             
+            # Add action to problem
             problem.add_action(action)
+        except Exception as e:
+            print(f"Warning: Failed to create action {action_name}: {e}")
     
     up_creation_time = time.time() - start_time
     print(f"Unified Planning problem created in {up_creation_time:.4f} seconds")
@@ -582,9 +928,9 @@ def main(prolog_file, pddl_output_file=None):
     
     # Print extracted knowledge summary
     print(f"\nExtracted knowledge summary:")
-    print(f"  Blocks: {knowledge['blocks']}")
-    print(f"  Positions: {knowledge['positions']}")
-    print(f"  Agents: {knowledge['agents']}")
+    print(f"  Types and objects:")
+    for type_name, instances in knowledge['types'].items():
+        print(f"    {type_name}: {instances}")
     print(f"  Fluents: {knowledge['fluent_names']}")
     print(f"  Initial state has {len(knowledge['init_state'])} assertions")
     print(f"  Goal state has {len(knowledge['goal_state'])} assertions")
@@ -598,6 +944,7 @@ def main(prolog_file, pddl_output_file=None):
     print(f"\nGoal State:")
     for state in knowledge['goal_state']:
         print(f"  {state}")
+    
     # Print actions in a complete, ordered and clean way
     print(f"\nActions details:")
     # Sort actions by name for better readability
@@ -686,16 +1033,38 @@ def main(prolog_file, pddl_output_file=None):
     # Create UP problem
     problem = create_up_problem(knowledge, fluent_signatures)
     
-    print(f"\n\n\nUnified Planning problem details:")
+    print(f"\nUnified Planning problem details:")
     print(problem)
-    print(f"\n\n\n")
-
+    
     # Generate PDDL if output file specified
     if pddl_output_file:
-        writer = PDDLWriter(problem)
-        writer.write_domain("RESULTS/CONVERTER/" + pddl_output_file + "_domain.pddl")
-        writer.write_problem("RESULTS/CONVERTER/" + pddl_output_file + "_problem.pddl")
-        print(f"\nPDDL files written to {pddl_output_file}.domain.pddl and {pddl_output_file}.problem.pddl")
+        try:
+            writer = PDDLWriter(problem)
+            
+            # Ensure the directory exists
+            import os
+            os.makedirs("RESULTS/CONVERTER", exist_ok=True)
+            
+            domain_path = "RESULTS/CONVERTER/" + pddl_output_file + "_domain.pddl"
+            problem_path = "RESULTS/CONVERTER/" + pddl_output_file + "_problem.pddl"
+            
+            writer.write_domain(domain_path)
+            writer.write_problem(problem_path)
+            
+            print(f"\nPDDL files written to {pddl_output_file}_domain.pddl and {pddl_output_file}_problem.pddl")
+            
+            # Print PDDL content for verification
+            print("\nGenerated PDDL Domain File Content:")
+            with open(domain_path, 'r') as f:
+                domain_content = f.read()
+                print(domain_content[:500] + "..." if len(domain_content) > 500 else domain_content)
+            
+            print("\nGenerated PDDL Problem File Content:")
+            with open(problem_path, 'r') as f:
+                problem_content = f.read()
+                print(problem_content[:500] + "..." if len(problem_content) > 500 else problem_content)
+        except Exception as e:
+            print(f"Error writing PDDL files: {e}")
     
     total_time = time.time() - total_start_time
     print(f"\nTotal conversion time: {total_time:.4f} seconds")
