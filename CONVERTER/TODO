@@ -1,5 +1,0 @@
-- [ ] Fare un file con tutte le dipendenze etc
-    - [ ] Fai runnare in virtual environment per vedere errori che dà e quelle saranno le librerie 
-- [ ] Fai diversi mini esempi in PROLOG e poi script che avvia converter in tutti quelli e risolve i PDDL di ognuno di essi
-- [ ] Le cose estratte hanno codici e non i loro nomi. Magari lasciali codici in generale ma aggiungi covvabolario se sono i soliti che usiamo
-    - ad esempio Block, move_to_table, etc

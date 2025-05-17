@@ -10,8 +10,7 @@ args = parser.parse_args()
 prolog_file = "PROLOG/" + args.filename
 
 # Nome del file di output PDDL
-pddl_output = "converter_pddl_result"
-
+pddl_output = "converter_pddl_result_" + args.filename.split(".")[0] 
 # Esegui la conversione
 problem = main(prolog_file, pddl_output)
 
