@@ -18,8 +18,21 @@
 - [Convertitore da Prolog a Unified Planning](#convertitore-da-prolog-a-unified-planning)
   - [Architettura e Flusso](#architettura-e-flusso)
   - [Utilizzo del Convertitore](#utilizzo-del-convertitore)
+    - [Conversione Base](#conversione-base)
+    - [Conversione con Pianificazione](#conversione-con-pianificazione)
+    - [Output Dettagliato](#output-dettagliato)
+    - [Esempi di Utilizzo](#esempi-di-utilizzo)
   - [File di Output](#file-di-output)
+    - [Senza flag --solve](#senza-flag---solve)
+    - [Con flag --solve](#con-flag---solve)
+    - [Descrizione dei File](#descrizione-dei-file)
+  - [Gestione dei Risultati](#gestione-dei-risultati)
+    - [Esempio di planning\_results.txt](#esempio-di-planning_resultstxt)
+  - [Timing delle Performance](#timing-delle-performance)
   - [Troubleshooting](#troubleshooting)
+    - [Problemi Comuni](#problemi-comuni)
+    - [Dipendenze Necessarie](#dipendenze-necessarie)
+    - [Verifica dell'Installazione](#verifica-dellinstallazione)
 
 ## Struttura del Progetto
 
@@ -27,7 +40,7 @@ La cartella è organizzata come segue:
 ```
 .
 ├── CONVERTER
-│   ├── **pycache**
+│   ├── __pycache__
 │   │   ├── kb_to_json.cpython-311.pyc
 │   │   ├── prolog_extractor.cpython-311.pyc
 │   │   └── prolog2up_V2.cpython-311.pyc
@@ -36,9 +49,6 @@ La cartella è organizzata come segue:
 │   ├── orchestrator.py
 │   ├── prolog_extractor.py
 │   └── prolog2up_V2.py
-├── extracted_knowledge.json
-├── GENERATED_BY_CONVERTED
-│   └── generated_up.py
 ├── PDDL
 │   ├── domain_a_mano.pddl
 │   ├── problem_a_mano.pddl
@@ -52,6 +62,12 @@ La cartella è organizzata come segue:
 ├── README.md
 ├── RESULTS
 │   ├── CONVERTER
+│   │   └── cucinare_0525_1430          # Cartelle con timestamp
+│   │       ├── extracted_knowledge.json
+│   │       ├── generated_up.py
+│   │       ├── generated_domain.pddl
+│   │       ├── generated_problem.pddl
+│   │       └── planning_results.txt    # (se usato --solve)
 │   ├── PDDL
 │   │   └── problem_a_mano_0506_12:16
 │   │       ├── best_solution_summary.txt
@@ -64,16 +80,6 @@ La cartella è organizzata come segue:
 │   │       ├── fd_lazy_greedy_output.txt
 │   │       ├── fd_lazy_greedy_plan.txt
 │   │       └── problem_a_mano.pddl
-│   ├── RESULTS
-│   │   └── PDDL
-│   │       └── converter_pddl_result_problem_0517_1851
-│   │           ├── comparison_report.txt
-│   │           ├── comparison_results.csv
-│   │           ├── converter_pddl_result_domain.pddl
-│   │           ├── converter_pddl_result_problem.pddl
-│   │           ├── detailed_results.json
-│   │           ├── fd_astar_ff_output.txt
-│   │           └── fd_lazy_greedy_output.txt
 │   └── UP
 └── UNIFIED_PLANNING
     ├── blocks_domain.pddl
@@ -228,7 +234,7 @@ Il framework Unified Planning seleziona automaticamente un motore di pianificazi
 export_to_pddl()  # Genera i file PDDL
 solve_problem()   # Risolve il problema
 ```
-Cmmentare una delle due linee in base a ciò che desideri fare:
+Commentare una delle due linee in base a ciò che desideri fare:
 
 - Generare i file PDDL senza risolvere il problema, commentare solve_problem()
 - Risolvere il problema senza generare i file PDDL, commentare export_to_pddl()
@@ -246,7 +252,7 @@ prolog_planner % swipl -l planner.pl -t "plan(4)."
 
 # Convertitore da Prolog a Unified Planning
 
-La sezione del convertitore è stata aggiornata con una nuova struttura modulare che permette di trasformare automaticamente file Prolog in rappresentazioni Python utilizzando il framework Unified Planning, generando anche i relativi file PDDL.
+La sezione del convertitore è stata aggiornata con una nuova struttura modulare che permette di trasformare automaticamente file Prolog in rappresentazioni Python utilizzando il framework Unified Planning, generando anche i relativi file PDDL e, opzionalmente, risolvendo i problemi di pianificazione.
 
 ## Architettura e Flusso
 
@@ -257,51 +263,167 @@ Il processo di conversione è ora composto da diversi moduli che lavorano insiem
 3. **kb_to_json.py**: Converte la conoscenza estratta in formato JSON strutturato
 4. **prolog2up_V2.py**: Genera il codice Python Unified Planning dal JSON
 5. **generated_up.py**: Il codice Python risultante che crea i file PDDL
+6. **run_plan.py**: (Opzionale) Risolve i problemi PDDL generati
 
 Il flusso di conversione è il seguente:
 ```
-File Prolog → Estrazione della Conoscenza → JSON → Codice Unified Planning → File PDDL
+File Prolog → Estrazione → JSON → Codice UP → File PDDL → [Pianificazione]
 ```
 
 ## Utilizzo del Convertitore
 
-Per avviare il convertitore con la nuova struttura, eseguire lo script orchestrator seguito dal percorso del file Prolog che si desidera convertire:
+### Conversione Base
+
+Per convertire un file Prolog in formato PDDL:
 
 ```bash
 python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl
 ```
 
-Per un output più dettagliato, utilizzare il flag --verbose:
+### Conversione con Pianificazione
+
+Per convertire E risolvere automaticamente il problema di pianificazione:
 
 ```bash
-python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --verbose
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve
 ```
 
-Dopo il completamento del processo di conversione, otterrai diversi file di output. Per garantire che i file PDDL vengano generati correttamente, potrebbe essere necessario eseguire direttamente il codice Python generato:
+### Output Dettagliato
+
+Per un output più dettagliato durante la conversione:
 
 ```bash
-python3 GENERATED_BY_CONVERTED/generated_up.py
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve --verbose
+```
+
+### Esempi di Utilizzo
+
+```bash
+# Converte il dominio della cucina
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve
+
+# Converte il mondo dei blocchi con output dettagliato
+python3 CONVERTER/orchestrator.py PROLOG/kb_hl.pl --solve --verbose
+
+# Solo conversione senza pianificazione
+python3 CONVERTER/orchestrator.py PROLOG/kb_hl.pl 
 ```
 
 ## File di Output
 
-Il processo di conversione produce diversi file:
+Il processo di conversione produce diversi file organizzati in cartelle con timestamp:
 
-1. **extracted_knowledge.json**: Rappresentazione strutturata della conoscenza estratta dal file Prolog
-2. **generated_up.py**: Codice Python che utilizza il framework Unified Planning
-3. **generated_domain.pddl**: Il file di dominio PDDL risultante
-4. **generated_problem.pddl**: Il file di problema PDDL risultante
+### Senza flag --solve
+```
+RESULTS/CONVERTER/cucinare_0525_1430/
+├── extracted_knowledge.json          # Conoscenza strutturata estratta
+├── generated_up.py                   # Codice Python Unified Planning
+├── generated_domain.pddl             # File dominio PDDL
+└── generated_problem.pddl            # File problema PDDL
+```
 
-Questi file vengono memorizzati nelle seguenti posizioni:
-- File JSON: Nella directory principale
-- Codice Python Unified Planning: Nella directory `GENERATED_BY_CONVERTED/`
-- File PDDL: Nella directory `GENERATED_BY_CONVERTED/`
+### Con flag --solve
+```
+RESULTS/CONVERTER/cucinare_0525_1430/
+├── extracted_knowledge.json          
+├── generated_up.py                   
+├── generated_domain.pddl             
+├── generated_problem.pddl            
+└── planning_results.txt              # Risultati di pianificazione unificati, con tempi per ogni algoritmo
+```
+
+### Descrizione dei File
+
+| File | Descrizione |
+|------|-------------|
+| `extracted_knowledge.json` | Rappresentazione strutturata della conoscenza estratta dal Prolog |
+| `generated_up.py` | Codice Python che utilizza il framework Unified Planning |
+| `generated_domain.pddl` | File dominio PDDL risultante |
+| `generated_problem.pddl` | File problema PDDL risultante |
+| `planning_results.txt` | Risultati di pianificazione con tabella comparativa e tutti i piani |
+
+## Gestione dei Risultati
+
+Ogni esecuzione del convertitore crea una cartella con timestamp unico:
+- Formato: `{nome_file}_{MMDD_HHMM}`
+- Esempio: `cucinare_0525_1430` per il file `cucinare.pl` eseguito il 25 maggio alle 14:30
+- Tutti i file correlati sono mantenuti insieme nella stessa cartella
+- Facilita il confronto tra diverse esecuzioni
+
+### Esempio di planning_results.txt
+
+```
+Planning Results
+Domain: /path/to/generated_domain.pddl
+Problem: /path/to/generated_problem.pddl
+Generated: 2024-05-25 14:30:45
+
+===== COMPARISON RESULTS =====
++---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
+|    Planner    |    Search   | Success | Plan Length | Search Time (s) |    Total Time (s)   | Expanded States |
++---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
+| fast_downward | lazy_greedy |   Yes   |      3      |      4e-05      | 0.108784           |        3        |
+| fast_downward |   astar_ff  |   Yes   |      3      |     6.1e-05     | 0.085747           |        4        |
++---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
+
+===== PLANS =====
+
+fast_downward_lazy_greedy plan:
+(cucina mario pasta pentola tavolo)
+(mangia mario pasta)
+
+fast_downward_astar_ff plan:
+(cucina mario pasta pentola tavolo)
+(mangia mario pasta)
+```
+
+## Timing delle Performance
+
+L'orchestrator fornisce informazioni dettagliate sui tempi di esecuzione per ogni fase:
+
+```
+Total execution time: 1.30857 seconds
+    Step 1 (Extraction): 0.00788s
+    Step 2 (Signatures): 0.00029s
+    Step 3-4 (JSON): 0.00064s
+    Step 5 (UP Code): 0.46544s
+    Step 6 (PDDL): 0.63290s
+    Step 7 (Planning): 0.20131s
+```
 
 ## Troubleshooting
 
 Se riscontri errori durante il processo di conversione, ecco alcune soluzioni comuni:
 
-1. **Problemi con i percorsi dei file**: Assicurati di eseguire i comandi dalla directory principale del progetto
-2. **File PDDL mancanti**: Se i file PDDL non vengono generati automaticamente, esegui manualmente lo script generated_up.py
-3. **Errori di PySwip**: Assicurati che SWI-Prolog sia installato e configurato correttamente per PySwip
-.
+### Problemi Comuni
+
+1. **Fast Downward non trovato**: Assicurati che Fast Downward sia installato e accessibile dal PATH
+2. **Problemi con PySwip**: Verifica che SWI-Prolog sia installato correttamente per PySwip
+3. **Errori di permessi**: Controlla i permessi di scrittura nella directory RESULTS/
+4. **Problemi con i percorsi dei file**: Assicurati di eseguire i comandi dalla directory principale del progetto
+
+### Dipendenze Necessarie
+
+- Python 3.8+
+- Unified Planning library
+- PySwip (per l'analisi Prolog)
+- Fast Downward (per la pianificazione)
+- SWI-Prolog
+
+### Verifica dell'Installazione
+
+```bash
+# Verifica Python
+python3 --version
+
+# Verifica Unified Planning
+python3 -c "import unified_planning; print('UP OK')"
+
+# Verifica PySwip
+python3 -c "from pyswip import Prolog; print('PySwip OK')"
+
+# Verifica SWI-Prolog
+swipl --version
+```
+
+Per problemi più specifici, utilizzare il flag `--verbose` per ottenere informazioni dettagliate durante l'esecuzione.

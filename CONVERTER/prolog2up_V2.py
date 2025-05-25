@@ -90,8 +90,8 @@ def infer_fluent_signature_from_usage(knowledge, fluent_name):
     # Default fallback
     return ["Unknown"]
 
-def generate_up_code(knowledge, out_dir="RESULTS"):
-    os.makedirs(out_dir, exist_ok=True)
+def generate_up_code(knowledge, out_dir):
+    """Generate UP code with proper output directory handling"""
     lines = []
     wp = lines.append
 
@@ -114,7 +114,6 @@ def generate_up_code(knowledge, out_dir="RESULTS"):
         wp(f"{t.capitalize()} = UserType('{t}')")
     wp("")
     
-    # Creazione del set per valori unici
     # Creazione del set per valori unici
     unique_types = set()
 
@@ -242,24 +241,27 @@ def generate_up_code(knowledge, out_dir="RESULTS"):
         wp(f"problem.add_action({name})")
         wp("")
 
-    # 9) Export PDDL
+    # 9) Export PDDL - use current directory (since we'll run this from output_dir)
     wp("writer = PDDLWriter(problem)")
-    wp(f"writer.write_domain(os.path.join('CONVERTER/GENERATED_BY_CONVERTED/generated_domain.pddl'))")
-    wp(f"writer.write_problem(os.path.join('CONVERTER/GENERATED_BY_CONVERTED/generated_problem.pddl'))")
-    wp("print('Generated PDDL files in', '" + out_dir + "')")
+    wp("writer.write_domain('generated_domain.pddl')")
+    wp("writer.write_problem('generated_problem.pddl')")
+    wp("print('Generated PDDL files in current directory')")
 
     return "\n".join(lines)
 
 if __name__ == "__main__":
-        # Ensure the /GENERATED directory exists
-        os.makedirs('GENERATED_BY_CONVERTED', exist_ok=True)
-        
+        # For standalone execution - look for JSON in current directory
+        json_file = "extracted_knowledge.json"
+        if not os.path.exists(json_file):
+            print(f"Error: {json_file} not found in current directory")
+            sys.exit(1)
+            
         # Load knowledge from the extracted JSON
-        with open('extracted_knowledge.json') as f:
+        with open(json_file) as f:
             knowledge = json.load(f)
         
-        # Generate and save the UP code
-        code = generate_up_code(knowledge)
-        with open('GENERATED_BY_CONVERTED/generated_up.py', 'w') as f:
+        # Generate and save the UP code in current directory
+        code = generate_up_code(knowledge, ".")
+        with open('generated_up.py', 'w') as f:
             f.write(code)
         print("Generated generated_up.py")

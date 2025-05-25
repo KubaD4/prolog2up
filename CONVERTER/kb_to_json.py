@@ -1,5 +1,6 @@
 import json
 import re
+import os
 
 def parse_predicate(pred_str):
     """
@@ -142,100 +143,12 @@ def knwoledge_to_json(knowledge):
 if __name__ == "__main__":
     # your existing `knowledge` dict
     knowledge = {
-        "types": {
-            "piano": ["tavolo"],
-            "luce": ["led"],
-            "strumento": ["pentola"],
-            "cibo": ["pasta"],
-            "cuoco": ["mario"]
-        },
-        "fluent_names": ["pieno", "disponibile", "cotto", "su", "ha_fame", "vuoto", "soddisfatto", "crudo"],
-        "fluent_signatures": {
-            "pieno": ["piano"],
-            "disponibile": ["strumento"],
-            "cotto": ["cibo"],
-            "su": ["piano", "strumento"],
-            "ha_fame": ["cuoco"],
-            "vuoto": ["piano"],
-            "soddisfatto": ["cuoco"],
-            "crudo": ["cibo"]
-        },
-        "init_state": [
-            "crudo(pasta)",
-            "disponibile(pentola)",
-            "ha_fame(mario)",
-            "vuoto(tavolo)"
-        ],
-        "goal_state": [
-            "cotto(pasta)",
-            "soddisfatto(mario)",
-            "pieno(tavolo)"
-        ],
-        "actions": [
-            {
-                "name": "cucina",
-                "parameters": ["Param1", "Param2", "Param3", "Param4"],
-                "type_constraints": [
-                    "cuoco(Param1)",
-                    "cibo(Param2)",
-                    "strumento(Param3)",
-                    "piano(Param4)"
-                ],
-                "preconditions": [
-                    "crudo(Param2)",
-                    "disponibile(Param3)",
-                    "vuoto(Param4)"
-                ],
-                "neg_preconditions": [],
-                "effects": [
-                    "add(cotto(Param2))",
-                    "add(pieno(Param4))",
-                    "del(crudo(Param2))",
-                    "del(vuoto(Param4))"
-                ]
-            },
-            {
-                "name": "mangia",
-                "parameters": ["Param1", "Param2"],
-                "type_constraints": [
-                    "cuoco(Param1)",
-                    "cibo(Param2)"
-                ],
-                "preconditions": [
-                    "cotto(Param2)",
-                    "ha_fame(Param1)"
-                ],
-                "neg_preconditions": [],
-                "effects": [
-                    "add(soddisfatto(Param1))",
-                    "del(ha_fame(Param1))"
-                ]
-            },
-            {
-                "name": "sposta_qualsiasi",
-                "parameters": ["Param1", "Param2", "Param3"],
-                "type_constraints": [
-                    "cuoco(Param1)",
-                    "strumento(Param2)",
-                    "piano(Param3)"
-                ],
-                "preconditions": [
-                    "disponibile(Param2)",
-                    "vuoto(Param3)"
-                ],
-                "neg_preconditions": [
-                    "su(_982, Param2)"
-                ],
-                "effects": [
-                    "add(su(Param3, Param2))",
-                    "del(disponibile(Param2))",
-                    "del(vuoto(Param3))"
-                ]
-            }
-        ]
     }
 
     result = knwoledge_to_json(knowledge)
     print(json.dumps(result, indent=4))
-    with open("CONVERTER/extracted_knowledge.json", "w") as json_file:
+    
+    # Ensure the output directory exists
+    os.makedirs("RESULTS/CONVERTER", exist_ok=True)
+    with open("RESULTS/CONVERTER/extracted_knowledge.json", "w") as json_file:
         json.dump(result, json_file, indent=4)
