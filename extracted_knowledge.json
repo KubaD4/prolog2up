@@ -1,0 +1,268 @@
+{
+    "types": {
+        "piano": [
+            "tavolo"
+        ],
+        "cuoco": [
+            "mario"
+        ],
+        "luce": [
+            "led"
+        ],
+        "strumento": [
+            "pentola"
+        ],
+        "cibo": [
+            "pasta"
+        ]
+    },
+    "fluents": [
+        "soddisfatto",
+        "su",
+        "ha_fame",
+        "cotto",
+        "disponibile",
+        "pieno",
+        "crudo",
+        "vuoto"
+    ],
+    "fluent_signatures": {
+        "soddisfatto": [
+            "cuoco"
+        ],
+        "ha_fame": [
+            "cuoco"
+        ],
+        "cotto": [
+            "cibo"
+        ],
+        "disponibile": [
+            "strumento"
+        ],
+        "pieno": [
+            "piano"
+        ],
+        "crudo": [
+            "cibo"
+        ],
+        "vuoto": [
+            "piano"
+        ]
+    },
+    "init_state": [
+        {
+            "name": "crudo",
+            "args": [
+                "pasta"
+            ]
+        },
+        {
+            "name": "disponibile",
+            "args": [
+                "pentola"
+            ]
+        },
+        {
+            "name": "ha_fame",
+            "args": [
+                "mario"
+            ]
+        },
+        {
+            "name": "vuoto",
+            "args": [
+                "tavolo"
+            ]
+        }
+    ],
+    "goal_state": [
+        {
+            "name": "cotto",
+            "args": [
+                "pasta"
+            ]
+        },
+        {
+            "name": "soddisfatto",
+            "args": [
+                "mario"
+            ]
+        },
+        {
+            "name": "pieno",
+            "args": [
+                "tavolo"
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "cucina",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "cuoco",
+                "Param2": "cibo",
+                "Param3": "strumento",
+                "Param4": "piano"
+            },
+            "preconditions": [
+                {
+                    "name": "crudo",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "disponibile",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "vuoto",
+                    "args": [
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "cotto",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "pieno",
+                    "args": [
+                        "Param4"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "crudo",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "vuoto",
+                    "args": [
+                        "Param4"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "mangia",
+            "parameters": [
+                "Param1",
+                "Param2"
+            ],
+            "type_constraints": {
+                "Param1": "cuoco",
+                "Param2": "cibo"
+            },
+            "preconditions": [
+                {
+                    "name": "cotto",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "ha_fame",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "soddisfatto",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "ha_fame",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "sposta_qualsiasi",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3"
+            ],
+            "type_constraints": {
+                "Param1": "cuoco",
+                "Param3": "piano",
+                "Param2": "strumento"
+            },
+            "preconditions": [
+                {
+                    "name": "disponibile",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "vuoto",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "su",
+                    "args": [
+                        "_982",
+                        "Param2"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "su",
+                    "args": [
+                        "Param3",
+                        "Param2"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "disponibile",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "vuoto",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ]
+        }
+    ]
+}

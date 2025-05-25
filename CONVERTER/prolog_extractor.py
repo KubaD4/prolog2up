@@ -12,22 +12,53 @@ def extract_prolog_knowledge(prolog_file):
     
     # Load the Prolog file
     prolog.consult(prolog_file)
-    
-    # Extract all predicates that could define types (unary predicates)
     type_predicates = {}
-    
-    # Extract types directly from the file content instead of querying all predicates
-    # This avoids attempting to query system predicates that cause warnings
-    
-    # First, check for direct type declarations in the file (e.g., block(b1).)
-    for predicate in ["block", "agent", "mela", "pos", "cuoco", "cibo", "strumento", "persona", "porta", "stanza", "vegetale"]:  # Add known type predicates here
-        try:
-            instances = list(prolog.query(f"{predicate}(X)"))
-            if instances:
-                type_predicates[predicate] = [i['X'] for i in instances]
-        except Exception as e:
-            # Silently ignore errors for predicates that don't exist
-            pass
+
+    # Metodo generale
+    try:
+        
+        predicates_found = set()
+        
+        with open(prolog_file, 'r') as f:
+            content = f.read()
+            
+        # Cerca nomeTipo(istanza).
+        import re
+        type_patterns = re.findall(r'^([a-zA-Z_][a-zA-Z0-9_]*)\([^)]+\)\s*\.', content, re.MULTILINE)
+        predicates_found.update(type_patterns)
+        
+        # Cerca anche nei type constraints delle azioni 
+        action_patterns = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)\([^)]+\)', content)
+        predicates_found.update([p for p in action_patterns if p not in ['action', 'add', 'del']])
+        
+        
+        for predicate in predicates_found:
+            try:
+                # Testa se questo predicato ha istanze unarie
+                instances = list(prolog.query(f"{predicate}(X)"))
+                if instances:
+                    valid_instances = []
+                    for instance in instances:
+                        instance_value = instance['X']
+                        if isinstance(instance_value, (str, int)) or (hasattr(instance_value, 'name') and not str(instance_value).startswith('_')):
+                            valid_instances.append(instance_value)
+                    
+                    if valid_instances:
+                        type_predicates[predicate] = valid_instances
+            except Exception as e:
+                continue
+                
+    except Exception as e:
+        print(f"Warning: General type extraction failed: {e}")
+        print("Falling back to manual type detection...")
+        
+        for predicate in ["block", "agent", "mela", "pos", "cuoco", "cibo", "strumento", "persona", "porta", "stanza", "vegetale", "piano"]:
+            try:
+                instances = list(prolog.query(f"{predicate}(X)"))
+                if instances:
+                    type_predicates[predicate] = [i['X'] for i in instances]
+            except Exception:
+                pass
     
     # Extract initial state
     init_state_query = list(prolog.query("init_state(X)"))
@@ -160,117 +191,10 @@ def extract_prolog_knowledge(prolog_file):
                 }
                 actions.append(action_info)
             else:
-                print(f"Warning: Invalid action head format: {action_head}")
+                print(f"Warning: Invalid action head format")
     except Exception as e:
         print(f"Warning: Could not extract actions directly: {e}")
-        print("Attempting alternative action extraction method...")
-        try:
-            # Get all action heads first (more manual approach)
-            with open(prolog_file, 'r') as f:
-                content = f.read()
-            
-            # Look for action definitions in the file content
-            action_pattern = r'action\(([^,]+)'
-            action_heads = re.findall(action_pattern, content)
-            
-            for action_head in action_heads:
-                action_head = action_head.strip()
-                if '(' in action_head:
-                    action_name = action_head.split('(')[0]
-                    
-                    # Try to query this specific action using its head
-                    try:
-                        query = f"action({action_head}, P, N, R, T, E)"
-                        solutions = list(prolog.query(query))
-                        
-                        if solutions:
-                            solution = solutions[0]
-                            
-                            # Extract parameters from head
-                            params_match = re.match(r'[^(]+\((.*)\)', action_head)
-                            param_values = []
-                            if params_match:
-                                params_str = params_match.group(1)
-                                param_values = [p.strip() for p in params_str.split(',')]
-                            
-                            # Create parameter names (Param1, Param2, ...)
-                            param_names = [f"Param{i+1}" for i in range(len(param_values))]
-                            
-                            # Create mapping from original parameter values to param names
-                            param_mapping = {str(val): name for val, name in zip(param_values, param_names)}
-                            
-                            # Function to replace parameter values with names in expressions
-                            def replace_params(expr, mapping):
-                                # Convert expression to string if it's not already
-                                expr_str = str(expr)
-                                # For each parameter value, replace it with the corresponding name
-                                for val, name in mapping.items():
-                                    # Replace parameters but be careful to only replace whole words
-                                    # and not parts of other words
-                                    expr_str = re.sub(r'\b' + re.escape(val) + r'\b', name, expr_str)
-                                return expr_str
-                            
-                            # Process preconditions
-                            processed_preconditions = []
-                            for precond in solution['P']:
-                                processed_preconditions.append(replace_params(precond, param_mapping))
-                            
-                            # Process negative preconditions
-                            processed_neg_preconditions = []
-                            for neg_precond in solution['N']:
-                                processed_neg_preconditions.append(replace_params(neg_precond, param_mapping))
-                            
-                            # Process resource preconditions
-                            processed_resource_preconditions = []
-                            for res_precond in solution['R']:
-                                processed_resource_preconditions.append(replace_params(res_precond, param_mapping))
-                            
-                            # Process type constraints
-                            processed_type_constraints = []
-                            for constraint in solution['T']:
-                                processed_type_constraints.append(replace_params(constraint, param_mapping))
-                            
-                            # Process effects
-                            processed_effects = []
-                            for effect in solution['E']:
-                                # Process both add and del effects
-                                effect_str = str(effect)
-                                
-                                # Handle add effects
-                                if 'add(' in effect_str:
-                                    match = re.search(r'add\((.*?)\)', effect_str)
-                                    if match:
-                                        inner = match.group(1)
-                                        replaced_inner = replace_params(inner, param_mapping)
-                                        effect_str = effect_str.replace(match.group(0), f"add({replaced_inner})")
-                                
-                                # Handle del effects
-                                if 'del(' in effect_str:
-                                    match = re.search(r'del\((.*?)\)', effect_str)
-                                    if match:
-                                        inner = match.group(1)
-                                        replaced_inner = replace_params(inner, param_mapping)
-                                        effect_str = effect_str.replace(match.group(0), f"del({replaced_inner})")
-                                
-                                processed_effects.append(effect_str)
-                            
-                            action_info = {
-                                'name': action_name,
-                                'parameters': param_names,
-                                'param_values': param_values,
-                                'preconditions': processed_preconditions,
-                                'neg_preconditions': processed_neg_preconditions,
-                                'resource_preconditions': processed_resource_preconditions,
-                                'type_constraints': processed_type_constraints,
-                                'effects': processed_effects
-                            }
-                            actions.append(action_info)
-                    except Exception as inner_e:
-                        print(f"Warning: Failed to query action {action_head}: {inner_e}")
-        except Exception as alt_e:
-            print(f"Warning: Alternative action extraction failed: {alt_e}")
-    
-    # Also extract type information from type constraints in actions
+
     for action in actions:
         for constraint in action['type_constraints']:
             match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
