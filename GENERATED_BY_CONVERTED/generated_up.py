@@ -9,47 +9,47 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.shortcuts import *
 up.shortcuts.get_environment().credits_stream = None
 
-Piano = UserType('piano')
-Cuoco = UserType('cuoco')
 Luce = UserType('luce')
-Strumento = UserType('strumento')
 Cibo = UserType('cibo')
-
-Cibo = UserType('cibo')
-Cuoco = UserType('cuoco')
 Piano = UserType('piano')
+Cuoco = UserType('cuoco')
 Strumento = UserType('strumento')
 
-soddisfatto = Fluent('soddisfatto', BoolType(), p0=Cuoco)
+Cuoco = UserType('cuoco')
+Strumento = UserType('strumento')
+Piano = UserType('piano')
+Cibo = UserType('cibo')
+
 su = Fluent('su', BoolType(), p0=Piano, p1=Strumento)
-ha_fame = Fluent('ha_fame', BoolType(), p0=Cuoco)
-cotto = Fluent('cotto', BoolType(), p0=Cibo)
-disponibile = Fluent('disponibile', BoolType(), p0=Strumento)
 pieno = Fluent('pieno', BoolType(), p0=Piano)
+ha_fame = Fluent('ha_fame', BoolType(), p0=Cuoco)
 crudo = Fluent('crudo', BoolType(), p0=Cibo)
+cotto = Fluent('cotto', BoolType(), p0=Cibo)
 vuoto = Fluent('vuoto', BoolType(), p0=Piano)
+soddisfatto = Fluent('soddisfatto', BoolType(), p0=Cuoco)
+disponibile = Fluent('disponibile', BoolType(), p0=Strumento)
 
 problem = Problem('from_prolog')
-problem.add_fluent(soddisfatto, default_initial_value=False)
 problem.add_fluent(su, default_initial_value=False)
-problem.add_fluent(ha_fame, default_initial_value=False)
-problem.add_fluent(cotto, default_initial_value=False)
-problem.add_fluent(disponibile, default_initial_value=False)
 problem.add_fluent(pieno, default_initial_value=False)
+problem.add_fluent(ha_fame, default_initial_value=False)
 problem.add_fluent(crudo, default_initial_value=False)
+problem.add_fluent(cotto, default_initial_value=False)
 problem.add_fluent(vuoto, default_initial_value=False)
+problem.add_fluent(soddisfatto, default_initial_value=False)
+problem.add_fluent(disponibile, default_initial_value=False)
 
+led = Object('led', Luce)
+pasta = Object('pasta', Cibo)
 tavolo = Object('tavolo', Piano)
 mario = Object('mario', Cuoco)
-led = Object('led', Luce)
 pentola = Object('pentola', Strumento)
-pasta = Object('pasta', Cibo)
 problem.add_objects([
+    led,
+    pasta,
     tavolo,
     mario,
-    led,
     pentola,
-    pasta,
 ])
 
 problem.set_initial_value(crudo(pasta), True)

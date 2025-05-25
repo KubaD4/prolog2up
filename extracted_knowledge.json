@@ -1,52 +1,52 @@
 {
     "types": {
+        "luce": [
+            "led"
+        ],
+        "cibo": [
+            "pasta"
+        ],
         "piano": [
             "tavolo"
         ],
         "cuoco": [
             "mario"
         ],
-        "luce": [
-            "led"
-        ],
         "strumento": [
             "pentola"
-        ],
-        "cibo": [
-            "pasta"
         ]
     },
     "fluents": [
-        "soddisfatto",
         "su",
-        "ha_fame",
-        "cotto",
-        "disponibile",
         "pieno",
+        "ha_fame",
         "crudo",
-        "vuoto"
+        "cotto",
+        "vuoto",
+        "soddisfatto",
+        "disponibile"
     ],
     "fluent_signatures": {
-        "soddisfatto": [
-            "cuoco"
+        "pieno": [
+            "piano"
         ],
         "ha_fame": [
             "cuoco"
         ],
-        "cotto": [
+        "crudo": [
             "cibo"
         ],
-        "disponibile": [
-            "strumento"
-        ],
-        "pieno": [
-            "piano"
-        ],
-        "crudo": [
+        "cotto": [
             "cibo"
         ],
         "vuoto": [
             "piano"
+        ],
+        "soddisfatto": [
+            "cuoco"
+        ],
+        "disponibile": [
+            "strumento"
         ]
     },
     "init_state": [
