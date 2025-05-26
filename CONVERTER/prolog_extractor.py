@@ -19,6 +19,37 @@ def extract_prolog_knowledge(prolog_file):
         
         predicates_found = set()
         
+        
+        # #    group(1)=nome, group(2)=tutto quello che sta dentro le parentesi
+        # signatures = re.findall(
+        #     r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*\(\s*([^)]+)\)\s*\.',
+        #     content,
+        #     re.MULTILINE
+        # )
+
+        # for name, args_str in signatures:
+        #     arity = args_str.count(',') + 1
+        #     vars_list = [f"X{i}" for i in range(arity)]
+        #     query = f"{name}({','.join(vars_list)})"
+        #     try:
+        #         answers = list(prolog.query(query))
+        #     except Exception:
+        #         # se il predicato non è esportato o non esiste, skip
+        #         continue
+        #     if not answers:
+        #         continue
+        #     # raccogli tutte le tuple valide (senza variabili anonime "_")
+        #     instances = []
+        #     for ans in answers:
+        #         tpl = tuple(ans[var] for var in vars_list)
+        #         # scarta tutte le tuple con valori che cominciano per "_" (anonimi)
+        #         if all(not str(v).startswith('_') for v in tpl):
+        #             instances.append(tpl)
+        #     if instances:
+        #         # memorizza solo le istanze distinte
+        #         type_predicates[name] = sorted(set(instances))
+        
+        
         with open(prolog_file, 'r') as f:
             content = f.read()
             
@@ -52,13 +83,13 @@ def extract_prolog_knowledge(prolog_file):
         print(f"Warning: General type extraction failed: {e}")
         print("Falling back to manual type detection...")
         
-        for predicate in ["block", "agent", "mela", "pos", "cuoco", "cibo", "strumento", "persona", "porta", "stanza", "vegetale", "piano"]:
-            try:
-                instances = list(prolog.query(f"{predicate}(X)"))
-                if instances:
-                    type_predicates[predicate] = [i['X'] for i in instances]
-            except Exception:
-                pass
+        # for predicate in ["block", "agent", "mela", "pos", "cuoco", "cibo", "strumento", "persona", "porta", "stanza", "vegetale", "piano"]:
+        #     try:
+        #         instances = list(prolog.query(f"{predicate}(X)"))
+        #         if instances:
+        #             type_predicates[predicate] = [i['X'] for i in instances]
+        #     except Exception:
+        #         pass
     
     # Extract initial state
     init_state_query = list(prolog.query("init_state(X)"))
@@ -253,7 +284,7 @@ def extract_prolog_knowledge(prolog_file):
 
 
 def analyze_fluent_signatures(knowledge):
-    """Analyze fluent signatures to determine their parameter types without making assumptions"""
+    """Analyze fluent signatures to determine their parameter types - COMPLETELY GENERALIZED"""
     fluent_signatures = {}
     
     # Create a mapping from object to its type
@@ -262,156 +293,231 @@ def analyze_fluent_signatures(knowledge):
         for instance in instances:
             object_to_type[str(instance)] = type_name
     
-    # Define known fluent signatures
-    known_fluents = {
-        'intera': ['mela'],
-        'morsa': ['mela'],
-        'clear': ['block'],
-        'available': ['agent'],
-        'ontable': ['block'],
-        'on': ['block', 'block'],
-        'moving_table_to_block': ['agent', 'block', 'block', 'Location', 'Location', 'Location', 'Location'],
-        'moving_table_to_table': ['agent', 'block', 'Location', 'Location', 'Location', 'Location'],
-        'moving_onblock_to_table': ['agent', 'block', 'Location', 'Location', 'Location', 'Location'],
-        'moving_onblock_to_block': ['agent', 'block', 'block', 'Location', 'Location', 'Location', 'Location']
-    }
+    # NO HARD-CODED ASSUMPTIONS - analyze everything dynamically
     
-    # Apply known fluent signatures first
-    for fluent_name in knowledge['fluent_names']:
-        if fluent_name in known_fluents:
-            fluent_signatures[fluent_name] = known_fluents[fluent_name]
+    # Collect fluent usage information with action context and scores
+    fluent_usage = {}  # fluent_name -> list of (param_types, action_score, action_name)
     
-    # Helper function to extract parameter types from a fluent instance
-    def extract_param_types(fluent_str):
-        # Extract the parameters from the fluent string
+    def extract_param_types_from_action(fluent_str, action):
+        """Extract parameter types from a fluent string using action context"""
         match = re.match(r'([a-zA-Z_]+)\((.*?)\)', fluent_str)
         if not match:
             return []
         
-        # Get parameter strings
+        fluent_name = match.group(1)
         params_str = match.group(2)
         params = [p.strip() for p in params_str.split(',')]
         
         param_types = []
+        action_type_constraints = action.get('type_constraints', [])
+        
+        # Create parameter-to-type mapping from action constraints
+        param_to_type = {}
+        for constraint in action_type_constraints:
+            constraint_match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
+            if constraint_match:
+                type_name = constraint_match.group(1)
+                param_names = constraint_match.group(2)
+                
+                # Handle both single and multiple parameters
+                if ',' in param_names:
+                    for param in param_names.split(','):
+                        param = param.strip()
+                        if param:
+                            param_to_type[param] = type_name
+                else:
+                    param_to_type[param_names.strip()] = type_name
+        
         for param in params:
-            # Check if parameter is a known object
-            if param in object_to_type:
+            # Try to get type from action constraints first
+            if param in param_to_type:
+                param_types.append(param_to_type[param])
+            # Check if parameter is a known object from extracted types
+            elif param in object_to_type:
                 param_types.append(object_to_type[param])
-            # Check if it might be a position/location parameter (numeric)
+            # Check if it's numeric (likely position/coordinate)
             elif param.isdigit() or (param.replace('-', '').replace('.', '').isdigit()):
-                param_types.append('Location')
+                param_types.append('pos')
+            # Check if it starts with underscore (wildcard)
+            elif param.startswith('_'):
+                param_types.append('wildcard')
             else:
-                # If can't determine, assume it's a variable of unknown type
                 param_types.append('Unknown')
         
         return param_types
     
-    # Analyze all fluent instances in initial state, goal state and actions to infer types
+    # Analyze fluent usage in ALL contexts
     for fluent_name in knowledge['fluent_names']:
-        # Skip fluents we've already handled
-        if fluent_name in fluent_signatures:
-            continue
-            
-        param_types_instances = []
+        if fluent_name not in fluent_usage:
+            fluent_usage[fluent_name] = []
         
-        # Check initial state
-        for state in knowledge['init_state']:
-            if state.startswith(fluent_name + '('):
-                param_types = extract_param_types(state)
-                if param_types:
-                    param_types_instances.append(param_types)
+        # From initial and goal states (highest priority - concrete instances)
+        for state_list, state_name in [(knowledge['init_state'], 'init'), (knowledge['goal_state'], 'goal')]:
+            for state in state_list:
+                if state.startswith(fluent_name + '('):
+                    param_types = []
+                    match = re.match(r'([a-zA-Z_]+)\((.*?)\)', state)
+                    if match:
+                        params = [p.strip() for p in match.group(2).split(',')]
+                        for param in params:
+                            if param in object_to_type:
+                                param_types.append(object_to_type[param])
+                            elif param.isdigit():
+                                param_types.append('pos')
+                            else:
+                                param_types.append('Unknown')
+                    
+                    if param_types:
+                        # High score for state definitions
+                        fluent_usage[fluent_name].append((param_types, 100, state_name))
         
-        # Check goal state
-        for state in knowledge['goal_state']:
-            if state.startswith(fluent_name + '('):
-                param_types = extract_param_types(state)
-                if param_types:
-                    param_types_instances.append(param_types)
-        
-        # Special case for 'at' fluent
-        if fluent_name == 'at':
-            # Look for pattern at(object, x, y) with 3 parameters
-            three_param_instances = []
-            for state in knowledge['init_state'] + knowledge['goal_state']:
-                match = re.match(r'at\(([^,]+),\s*(\d+),\s*(\d+)\)', state)
-                if match:
-                    obj_name = match.group(1).strip()
-                    x, y = match.group(2), match.group(3)
-                    obj_type = object_to_type.get(obj_name, 'Unknown')
-                    three_param_instances.append([obj_type, 'Location', 'Location'])
-            
-            if three_param_instances:
-                fluent_signatures[fluent_name] = three_param_instances[0]
-                continue
-        
-        # Check action preconditions and effects
+        # From actions (analyze based on type constraint richness)
         for action in knowledge['actions']:
+            action_score = len(action.get('type_constraints', []))
+            
+            # Check preconditions
             for precond in action['preconditions']:
                 if precond.startswith(fluent_name + '('):
-                    param_types = extract_param_types(precond)
+                    param_types = extract_param_types_from_action(precond, action)
                     if param_types:
-                        param_types_instances.append(param_types)
+                        fluent_usage[fluent_name].append((param_types, action_score, action['name']))
             
+            # Check effects
             for effect in action['effects']:
                 if 'add(' in effect or 'del(' in effect:
                     match = re.search(r'add\((.*?)\)', effect) or re.search(r'del\((.*?)\)', effect)
                     if match and match.group(1).startswith(fluent_name + '('):
-                        param_types = extract_param_types(match.group(1))
+                        param_types = extract_param_types_from_action(match.group(1), action)
                         if param_types:
-                            param_types_instances.append(param_types)
+                            fluent_usage[fluent_name].append((param_types, action_score, action['name']))
+    
+    # Process collected usage to determine best signatures
+    for fluent_name, usage_list in fluent_usage.items():
+        if not usage_list:
+            continue
         
-        # Additional check: look for type constraints in actions
-        for action in knowledge['actions']:
-            for constraint in action['type_constraints']:
-                if not any(f"{param_name}(" in constraint for param_name in knowledge['types']):
-                    continue
-                    
-                # Extract type information from constraints
-                match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
-                if match and match.group(1) in knowledge['types']:
-                    # Found a type constraint, now find which parameter it refers to
-                    type_name = match.group(1)
-                    param_name = match.group(2)
-                    
-                    # Find where this parameter is used in fluents
-                    for precond in action['preconditions']:
-                        precond_match = re.match(r'([a-zA-Z_]+)\((.*?)\)', precond)
-                        if not precond_match:
-                            continue
-                            
-                        precond_fluent = precond_match.group(1)
-                        precond_params = [p.strip() for p in precond_match.group(2).split(',')]
-                        
-                        if precond_fluent == fluent_name and param_name in precond_params:
-                            # Found a parameter with known type
-                            param_pos = precond_params.index(param_name)
-                            
-                            # Create type list with known type at this position
-                            new_type_list = ['Unknown'] * len(precond_params)
-                            new_type_list[param_pos] = type_name
-                            param_types_instances.append(new_type_list)
+        # Sort by score (descending) to prioritize more informative sources
+        usage_list.sort(key=lambda x: x[1], reverse=True)
         
-        # If we have any instances of this fluent
-        if param_types_instances:
-            # Use the most common length
-            common_length = max(set(len(pt) for pt in param_types_instances), key=lambda x: sum(1 for pt in param_types_instances if len(pt) == x))
+        # Find most common signature length
+        lengths = [len(usage[0]) for usage in usage_list]
+        if not lengths:
+            continue
             
-            # Filter to instances with the common length
-            filtered_instances = [pt for pt in param_types_instances if len(pt) == common_length]
+        most_common_length = max(set(lengths), key=lengths.count)
+        
+        # Filter to most common length
+        filtered_usage = [usage for usage in usage_list if len(usage[0]) == most_common_length]
+        
+        # For each parameter position, find the best type
+        final_signature = []
+        for pos in range(most_common_length):
+            types_at_position = []
+            scores_for_types = {}
             
-            # For each parameter position, find the most common type
-            final_param_types = []
-            for i in range(common_length):
-                types_at_position = [instance[i] for instance in filtered_instances]
-                # Filter out 'Unknown' if there are known types
-                known_types = [t for t in types_at_position if t != 'Unknown']
+            for param_types, score, source in filtered_usage:
+                if pos < len(param_types):
+                    ptype = param_types[pos]
+                    types_at_position.append(ptype)
+                    if ptype not in scores_for_types:
+                        scores_for_types[ptype] = 0
+                    scores_for_types[ptype] += score
+            
+            # Choose best type for this position
+            if types_at_position:
+                # Filter out wildcards and unknowns if we have better options
+                known_types = [t for t in types_at_position if t not in ['wildcard', 'Unknown']]
+                
                 if known_types:
-                    common_type = max(set(known_types), key=known_types.count)
+                    # Choose type with highest combined score
+                    best_type = max(known_types, key=lambda t: scores_for_types.get(t, 0))
+                    final_signature.append(best_type)
                 else:
-                    common_type = 'Unknown'
-                final_param_types.append(common_type)
+                    final_signature.append('Unknown')
+            else:
+                final_signature.append('Unknown')
+        
+        fluent_signatures[fluent_name] = final_signature
+    
+    # Post-process to resolve remaining unknowns based on cross-action analysis
+    fluent_signatures = _resolve_unknowns_across_actions(fluent_signatures, knowledge)
+    
+    return fluent_signatures
+
+def _resolve_unknowns_across_actions(fluent_signatures, knowledge):
+    """Resolve Unknown types by analyzing cross-action parameter usage"""
+    
+    # Build parameter usage patterns across actions
+    param_usage_patterns = {}  # param_name -> {fluent_name: {position: type}}
+    
+    for action in knowledge['actions']:
+        type_constraints = action.get('type_constraints', [])
+        
+        # Build param-to-type mapping for this action
+        param_to_type = {}
+        for constraint in type_constraints:
+            constraint_match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
+            if constraint_match:
+                type_name = constraint_match.group(1)
+                param_names = constraint_match.group(2)
+                
+                if ',' in param_names:
+                    for param in param_names.split(','):
+                        param = param.strip()
+                        if param:
+                            param_to_type[param] = type_name
+                else:
+                    param_to_type[param_names.strip()] = type_name
+        
+        # Analyze all fluent usages in this action
+        all_fluent_uses = []
+        all_fluent_uses.extend(action['preconditions'])
+        
+        for effect in action['effects']:
+            if 'add(' in effect:
+                match = re.search(r'add\((.*?)\)', effect)
+                if match:
+                    all_fluent_uses.append(match.group(1))
+            elif 'del(' in effect:
+                match = re.search(r'del\((.*?)\)', effect)
+                if match:
+                    all_fluent_uses.append(match.group(1))
+        
+        for fluent_use in all_fluent_uses:
+            match = re.match(r'([a-zA-Z_]+)\((.*?)\)', fluent_use)
+            if not match:
+                continue
+                
+            fluent_name = match.group(1)
+            params = [p.strip() for p in match.group(2).split(',')]
             
-            fluent_signatures[fluent_name] = final_param_types
+            for pos, param in enumerate(params):
+                if param in param_to_type:
+                    if param not in param_usage_patterns:
+                        param_usage_patterns[param] = {}
+                    if fluent_name not in param_usage_patterns[param]:
+                        param_usage_patterns[param][fluent_name] = {}
+                    param_usage_patterns[param][fluent_name][pos] = param_to_type[param]
+    
+    # Apply cross-action resolution
+    for fluent_name, signature in fluent_signatures.items():
+        for pos, param_type in enumerate(signature):
+            if param_type == 'Unknown':
+                # Look for patterns in parameter usage
+                candidate_types = set()
+                
+                for param_name, usage_pattern in param_usage_patterns.items():
+                    if fluent_name in usage_pattern and pos in usage_pattern[fluent_name]:
+                        candidate_types.add(usage_pattern[fluent_name][pos])
+                
+                if len(candidate_types) == 1:
+                    signature[pos] = list(candidate_types)[0]
+                elif candidate_types:
+                    # Choose most common
+                    type_counts = {}
+                    for ctype in candidate_types:
+                        type_counts[ctype] = type_counts.get(ctype, 0) + 1
+                    signature[pos] = max(type_counts.items(), key=lambda x: x[1])[0]
     
     return fluent_signatures
 
