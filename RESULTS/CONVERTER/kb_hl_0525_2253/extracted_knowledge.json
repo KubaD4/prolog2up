@@ -1,0 +1,1344 @@
+{
+    "types": {
+        "pos": [
+            [
+                1,
+                1
+            ],
+            [
+                2,
+                2
+            ],
+            [
+                3,
+                3
+            ],
+            [
+                10,
+                10
+            ]
+        ],
+        "block": [
+            [
+                "b1"
+            ],
+            [
+                "b2"
+            ],
+            [
+                "b3"
+            ],
+            [
+                "b4"
+            ],
+            [
+                "b5"
+            ],
+            [
+                "b6"
+            ]
+        ],
+        "agent": [
+            [
+                "a1"
+            ],
+            [
+                "a2"
+            ]
+        ]
+    },
+    "fluents": [
+        "on",
+        "moving_table_to_table",
+        "at",
+        "moving_onblock_to_table",
+        "available",
+        "moving_table_to_block",
+        "clear",
+        "moving_onblock_to_block",
+        "ontable"
+    ],
+    "fluent_signatures": {
+        "on": [
+            "block",
+            "block"
+        ],
+        "moving_table_to_table": [
+            "agent",
+            "block",
+            "Location",
+            "Location",
+            "Location",
+            "Location"
+        ],
+        "moving_onblock_to_table": [
+            "agent",
+            "block",
+            "Location",
+            "Location",
+            "Location",
+            "Location"
+        ],
+        "available": [
+            "agent"
+        ],
+        "moving_table_to_block": [
+            "agent",
+            "block",
+            "block",
+            "Location",
+            "Location",
+            "Location",
+            "Location"
+        ],
+        "clear": [
+            "block"
+        ],
+        "moving_onblock_to_block": [
+            "agent",
+            "block",
+            "block",
+            "Location",
+            "Location",
+            "Location",
+            "Location"
+        ],
+        "ontable": [
+            "block"
+        ],
+        "at": [
+            "Unknown",
+            "Location",
+            "Location"
+        ]
+    },
+    "init_state": [
+        {
+            "name": "ontable",
+            "args": [
+                "b1"
+            ]
+        },
+        {
+            "name": "ontable",
+            "args": [
+                "b2"
+            ]
+        },
+        {
+            "name": "ontable",
+            "args": [
+                "b3"
+            ]
+        },
+        {
+            "name": "on",
+            "args": [
+                "b4",
+                "b1"
+            ]
+        },
+        {
+            "name": "on",
+            "args": [
+                "b5",
+                "b2"
+            ]
+        },
+        {
+            "name": "on",
+            "args": [
+                "b6",
+                "b3"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b1",
+                "1",
+                "1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b2",
+                "2",
+                "2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b3",
+                "3",
+                "3"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b4",
+                "1",
+                "1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b5",
+                "2",
+                "2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b6",
+                "3",
+                "3"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b4"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b5"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b6"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "a1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "a2"
+            ]
+        }
+    ],
+    "goal_state": [
+        {
+            "name": "ontable",
+            "args": [
+                "b1"
+            ]
+        },
+        {
+            "name": "ontable",
+            "args": [
+                "b2"
+            ]
+        },
+        {
+            "name": "ontable",
+            "args": [
+                "b3"
+            ]
+        },
+        {
+            "name": "ontable",
+            "args": [
+                "b4"
+            ]
+        },
+        {
+            "name": "on",
+            "args": [
+                "b5",
+                "b4"
+            ]
+        },
+        {
+            "name": "on",
+            "args": [
+                "b6",
+                "b3"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b1",
+                "1",
+                "1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b2",
+                "2",
+                "2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b3",
+                "3",
+                "3"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b4",
+                "10",
+                "10"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b5",
+                "10",
+                "10"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b6",
+                "3",
+                "3"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b1"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b2"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b5"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b6"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "a1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "a2"
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "move_table_to_table_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param3, Param4": "pos",
+                "Param3": "pos",
+                "Param4": "pos",
+                "Param5, Param6": "pos",
+                "Param5": "pos",
+                "Param6": "pos",
+                "Param2": "block"
+            },
+            "preconditions": [
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "at",
+                    "args": [
+                        "_4912",
+                        "Param5",
+                        "Param6"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "_4928"
+                    ],
+                    "wildcard_positions": [
+                        1
+                    ]
+                },
+                {
+                    "name": "moving_table_to_table",
+                    "args": [
+                        "_4938",
+                        "Param2",
+                        "_4942",
+                        "_4944",
+                        "_4946",
+                        "_4948"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3,
+                        4,
+                        5
+                    ]
+                },
+                {
+                    "name": "moving_table_to_block",
+                    "args": [
+                        "_4958",
+                        "Param2",
+                        "_4962",
+                        "_4964",
+                        "_4966",
+                        "_4968",
+                        "_4970"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_table_to_table",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_table_to_table_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param2": "block",
+                "Param3": "Location",
+                "Param4": "Location",
+                "Param5": "Location",
+                "Param6": "Location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_table_to_table",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "at",
+                    "args": [
+                        "_4888",
+                        "Param5",
+                        "Param6"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param5",
+                        "Param6"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "moving_table_to_table",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_table_to_block_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6",
+                "Param7"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param4, Param5": "pos",
+                "Param4": "pos",
+                "Param5": "pos",
+                "Param6, Param7": "pos",
+                "Param6": "pos",
+                "Param7": "pos",
+                "Param2": "block",
+                "Param3": "block"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4",
+                        "Param5"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param3",
+                        "Param6",
+                        "Param7"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "on",
+                    "args": [
+                        "_4938",
+                        "Param2"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "_4952"
+                    ],
+                    "wildcard_positions": [
+                        1
+                    ]
+                },
+                {
+                    "name": "moving_table_to_table",
+                    "args": [
+                        "_4962",
+                        "_4964",
+                        "_4966",
+                        "_4968",
+                        "_4970",
+                        "_4972"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ]
+                },
+                {
+                    "name": "moving_table_to_block",
+                    "args": [
+                        "_4982",
+                        "_4964",
+                        "_4986",
+                        "_4988",
+                        "_4990",
+                        "_4992",
+                        "_4994"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_table_to_block",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6",
+                        "Param7"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4",
+                        "Param5"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_table_to_block_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6",
+                "Param7"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param2": "block",
+                "Param3": "block",
+                "Param4": "Location",
+                "Param5": "Location",
+                "Param6": "Location",
+                "Param7": "Location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_table_to_block",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6",
+                        "Param7"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param6",
+                        "Param7"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "moving_table_to_block",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6",
+                        "Param7"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_onblock_to_table_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6",
+                "Param7"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param4, Param5": "pos",
+                "Param4": "pos",
+                "Param5": "pos",
+                "Param6, Param7": "pos",
+                "Param6": "pos",
+                "Param7": "pos",
+                "Param2": "block",
+                "Param3": "block"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4",
+                        "Param5"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param3",
+                        "Param4",
+                        "Param5"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "moving_onblock_to_table",
+                    "args": [
+                        "_4930",
+                        "Param2",
+                        "_4934",
+                        "_4936",
+                        "_4938",
+                        "_4940"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3,
+                        4,
+                        5
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "_4950",
+                        "Param2"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                },
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ],
+                    "wildcard_positions": []
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "_4972",
+                        "Param6",
+                        "Param7"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_onblock_to_table",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param4",
+                        "Param5",
+                        "Param6",
+                        "Param7"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4",
+                        "Param5"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_onblock_to_table_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param2": "block",
+                "Param3": "Location",
+                "Param4": "Location",
+                "Param5": "Location",
+                "Param6": "Location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_onblock_to_table",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "at",
+                    "args": [
+                        "_4888",
+                        "Param5",
+                        "Param6"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param5",
+                        "Param6"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "moving_onblock_to_table",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_onblock_to_block_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6",
+                "Param7",
+                "Param8"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param5, Param6": "pos",
+                "Param5": "pos",
+                "Param6": "pos",
+                "Param7, Param8": "pos",
+                "Param7": "pos",
+                "Param8": "pos",
+                "Param2": "block",
+                "Param4": "block",
+                "Param3": "block"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param5",
+                        "Param6"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param4",
+                        "Param7",
+                        "Param8"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "moving_onblock_to_block",
+                    "args": [
+                        "_4942",
+                        "Param2",
+                        "_4946",
+                        "_4948",
+                        "_4950",
+                        "_4952"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3,
+                        4,
+                        5
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "_4962",
+                        "Param2"
+                    ],
+                    "wildcard_positions": [
+                        0
+                    ]
+                },
+                {
+                    "name": "ontable",
+                    "args": [
+                        "Param2"
+                    ],
+                    "wildcard_positions": []
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_onblock_to_block",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param4",
+                        "Param5",
+                        "Param6",
+                        "Param7",
+                        "Param8"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param5",
+                        "Param6"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_onblock_to_block_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5",
+                "Param6",
+                "Param7"
+            ],
+            "type_constraints": {
+                "Param1": "agent",
+                "Param2": "block",
+                "Param3": "block",
+                "Param4": "Location",
+                "Param5": "Location",
+                "Param6": "Location",
+                "Param7": "Location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_onblock_to_block",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6",
+                        "Param7"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param6",
+                        "Param7"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "moving_onblock_to_block",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5",
+                        "Param6",
+                        "Param7"
+                    ]
+                }
+            ]
+        }
+    ]
+}

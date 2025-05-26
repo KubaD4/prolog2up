@@ -1,0 +1,189 @@
+{
+    "types": {
+        "block": [
+            "b1",
+            "b2"
+        ],
+        "Location": [
+            "loc_1_1",
+            "loc_2_2"
+        ],
+        "agent": [
+            "a1"
+        ],
+        "mela": [
+            "m1"
+        ],
+        "vegetale": [
+            "carota1"
+        ]
+    },
+    "fluents": [
+        "intera",
+        "cruda",
+        "ontable",
+        "morsa",
+        "moving_table_to_block",
+        "available",
+        "cotta",
+        "clear",
+        "on",
+        "at"
+    ],
+    "fluent_signatures": {
+        "intera": [
+            "Mela"
+        ],
+        "cruda": [
+            "Vegetale"
+        ],
+        "ontable": [
+            "Block"
+        ],
+        "morsa": [
+            "Mela"
+        ],
+        "moving_table_to_block": [
+            "Unknown",
+            "Unknown",
+            "Unknown",
+            "Unknown",
+            "Unknown",
+            "Unknown",
+            "Unknown"
+        ],
+        "available": [
+            "Agent"
+        ],
+        "cotta": [
+            "Vegetale"
+        ],
+        "clear": [
+            "Block"
+        ],
+        "on": [
+            "Block",
+            "Block"
+        ],
+        "at": [
+            "Block",
+            "Location"
+        ]
+    },
+    "init_state": [
+        {
+            "name": "ontable",
+            "args": [
+                "b1"
+            ]
+        },
+        {
+            "name": "ontable",
+            "args": [
+                "b2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b1",
+                "1",
+                "1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b2",
+                "2",
+                "2"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b1"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b2"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "a1"
+            ]
+        },
+        {
+            "name": "intera",
+            "args": [
+                "m1"
+            ]
+        },
+        {
+            "name": "cruda",
+            "args": [
+                "carota1"
+            ]
+        }
+    ],
+    "goal_state": [
+        {
+            "name": "ontable",
+            "args": [
+                "b2"
+            ]
+        },
+        {
+            "name": "on",
+            "args": [
+                "b1",
+                "b2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b1",
+                "2",
+                "2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "b2",
+                "2",
+                "2"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "b1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "a1"
+            ]
+        },
+        {
+            "name": "morsa",
+            "args": [
+                "m1"
+            ]
+        },
+        {
+            "name": "cotta",
+            "args": [
+                "carota1"
+            ]
+        }
+    ],
+    "pos_map": {
+        
