@@ -1,0 +1,386 @@
+{
+    "types": {
+        "patient": [
+            "p1",
+            "p2"
+        ],
+        "staff": [
+            "doctor1",
+            "nurse1",
+            "technician1"
+        ],
+        "procedure": [
+            "electrocardiogram",
+            "blood_test",
+            "x_ray"
+        ],
+        "resource": [
+            "equipment_ecg",
+            "equipment_xray",
+            "lab_blood_test"
+        ]
+    },
+    "fluents": [
+        "needs_procedure",
+        "procedure_done",
+        "available"
+    ],
+    "fluent_signatures": {
+        "needs_procedure": [
+            "patient",
+            "procedure"
+        ],
+        "procedure_done": [
+            "patient",
+            "procedure"
+        ],
+        "available": [
+            "staff"
+        ]
+    },
+    "init_state": [
+        {
+            "name": "needs_procedure",
+            "args": [
+                "p1",
+                "electrocardiogram"
+            ]
+        },
+        {
+            "name": "needs_procedure",
+            "args": [
+                "p1",
+                "blood_test"
+            ]
+        },
+        {
+            "name": "needs_procedure",
+            "args": [
+                "p2",
+                "x_ray"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "doctor1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "nurse1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "technician1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "equipment_ecg"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "equipment_xray"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "lab_blood_test"
+            ]
+        }
+    ],
+    "goal_state": [
+        {
+            "name": "procedure_done",
+            "args": [
+                "p1",
+                "electrocardiogram"
+            ]
+        },
+        {
+            "name": "procedure_done",
+            "args": [
+                "p1",
+                "blood_test"
+            ]
+        },
+        {
+            "name": "procedure_done",
+            "args": [
+                "p2",
+                "x_ray"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "doctor1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "nurse1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "technician1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "equipment_ecg"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "equipment_xray"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "lab_blood_test"
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "perform_ecg",
+            "parameters": [
+                "Param1",
+                "Param2"
+            ],
+            "type_constraints": {
+                "Param1": "staff",
+                "Param2": "patient"
+            },
+            "preconditions": [
+                {
+                    "name": "needs_procedure",
+                    "args": [
+                        "Param2",
+                        "electrocardiogram"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "equipment_ecg"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "procedure_done",
+                    "args": [
+                        "Param2",
+                        "electrocardiogram"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "equipment_ecg"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "needs_procedure",
+                    "args": [
+                        "Param2",
+                        "electrocardiogram"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "equipment_ecg"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "perform_blood_test",
+            "parameters": [
+                "Param1",
+                "Param2"
+            ],
+            "type_constraints": {
+                "Param1": "staff",
+                "Param2": "patient"
+            },
+            "preconditions": [
+                {
+                    "name": "needs_procedure",
+                    "args": [
+                        "Param2",
+                        "blood_test"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "lab_blood_test"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "procedure_done",
+                    "args": [
+                        "Param2",
+                        "blood_test"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "lab_blood_test"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "needs_procedure",
+                    "args": [
+                        "Param2",
+                        "blood_test"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "lab_blood_test"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "perform_xray",
+            "parameters": [
+                "Param1",
+                "Param2"
+            ],
+            "type_constraints": {
+                "Param1": "staff",
+                "Param2": "patient"
+            },
+            "preconditions": [
+                {
+                    "name": "needs_procedure",
+                    "args": [
+                        "Param2",
+                        "x_ray"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "equipment_xray"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "procedure_done",
+                    "args": [
+                        "Param2",
+                        "x_ray"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "equipment_xray"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "needs_procedure",
+                    "args": [
+                        "Param2",
+                        "x_ray"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "equipment_xray"
+                    ]
+                }
+            ]
+        }
+    ]
+}

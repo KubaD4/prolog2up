@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertitore Automatico: Prolog → Unified Planning</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .slide {
+            background: white;
+            margin: 30px auto;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            max-width: 1400px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 4px solid #3498db;
+            padding-bottom: 15px;
+            font-size: 2.4em;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            font-size: 1.9em;
+            margin: 35px 0 20px 0;
+            border-left: 5px solid #3498db;
+            padding-left: 15px;
+        }
+        
+        h3 {
+            color: #7f8c8d;
+            font-size: 1.5em;
+            margin: 25px 0 15px 0;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            margin: 20px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        
+        .prolog { border-left: 5px solid #e74c3c; }
+        .json { border-left: 5px solid #f39c12; }
+        .python { border-left: 5px solid #27ae60; }
+        .pddl { border-left: 5px solid #9b59b6; }
+        
+        .example-flow {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            align-items: center;
+            margin: 30px 0;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .example-step {
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .step-input {
+            background: #fff5f5;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .step-output {
+            background: #f0fff4;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .arrow {
+            font-size: 2.5em;
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .flow-box {
+            background: #3498db;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 180px;
+            margin: 8px;
+            font-weight: bold;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 3px 6px;
+            border-radius: 4px;
+            color: #856404;
+            font-weight: bold;
+        }
+        
+        .key-point {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #27ae60;
+            margin: 25px 0;
+            font-weight: 500;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .stat-card {
+            background: #ecf0f1;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 5px solid #3498db;
+        }
+        
+        .stat-number {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .comparison-side {
+            padding: 25px;
+            border-radius: 10px;
+        }
+        
+        .before { background: #ffebee; border-left: 5px solid #f44336; }
+        .after { background: #e8f5e8; border-left: 5px solid #4caf50; }
+        
+        .wildcard-demo {
+            background: #fff3e0;
+            border: 3px solid #ff9800;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 25px 0;
+        }
+        
+        .mini-code {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #495057;
+            display: inline;
+        }
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: TITOLO -->
+<div class="slide">
+    <h1>1. Convertitore Automatico Prolog → Unified Planning</h1>
+    <div style="text-align: center; margin: 40px 0;">
+        <div style="font-size: 1.4em; margin: 15px 0; color: #2c3e50;">
+            <strong>Conversione automatica da PLANTOR a codice UP funzionante</strong>
+        </div>
+        <div style="font-size: 1.1em; color: #7f8c8d;">
+            Con generazione PDDL e validazione automatica
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 2: ARCHITETTURA -->
+<div class="slide">
+    <h1>2. Architettura del Sistema</h1>
+    
+    <div class="flow-diagram">
+        <div class="flow-box">kb_hl.pl<br><small>Prolog Input</small></div>
+        <div class="arrow">→</div>
+        <div class="flow-box">Extractor<br><small>PySwip Query</small></div>
+        <div class="arrow">→</div>
+        <div class="flow-box">JSON<br><small>Structured</small></div>
+        <div class="arrow">→</div>
+        <div class="flow-box">UP Code<br><small>Generated</small></div>
+        <div class="arrow">→</div>
+        <div class="flow-box">PDDL<br><small>Ready</small></div>
+    </div>
+    
+    <h2>Pipeline Timing</h2>
+    <div class="code-block">Total execution time: 1.30857 seconds
+    Step 1 (Extraction): 0.00788s
+    Step 2 (Signatures): 0.00029s  
+    Step 3-4 (JSON): 0.00064s
+    Step 5 (UP Code): 0.46544s
+    Step 6 (PDDL): 0.63290s
+    Step 7 (Planning): 0.20131s</div>
+    
+    <div class="key-point">
+        <strong>Coordinamento:</strong> orchestrator.py gestisce l'intera pipeline con timing 
+    </div>
+</div>
+
+<!-- SLIDE 3: ESTRAZIONE TIPI -->
+<div class="slide">
+    <h1>3. Estrazione Automatica dei Tipi</h1>
+    
+    <h2>Come Funziona l'Estrazione: name(x)</h2>         
+
+    
+    <div class="example-flow">
+        <div class="example-step step-input">
+            <h4>Input Prolog</h4>
+            <div class="code-block prolog">block(b1). block(b2). block(b3).
+agent(a1). agent(a2).</div>
+        </div>
+        
+        <div class="arrow">→</div>
+        
+        <div class="example-step step-output">
+            <h4>Tipi Estratti</h4>
+            <div class="code-block json">"types": {
+    "block": ["b1", "b2", "b3"],
+    "agent": ["a1", "a2"]
+}</div>
+        </div>
+    </div>
+    
+    <h2>Logica di Estrazione</h2>
+    <div class="code-block python">
+        from pyswip import Prolog
+        prolog = Prolog()
+        # Load the Prolog file
+        prolog.consult(prolog_file)
+        type_predicates = {}
+    
+        try:
+            
+            predicates_found = set()
+            
+            with open(prolog_file, 'r') as f:
+                content = f.read()
+            # Cerca nomeTipo(istanza).
+            import re
+            type_patterns = re.findall(r'^([a-zA-Z_][a-zA-Z0-9_]*)\([^)]+\)\s*\.', content, re.MULTILINE)
+            predicates_found.update(type_patterns)
+            # Cerca anche nei type constraints delle azioni 
+            action_patterns = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)\([^)]+\)', content)
+            predicates_found.update([p for p in action_patterns if p not in ['action', 'add', 'del']])
+            
+            for predicate in predicates_found:
+                try:
+                    instances = list(prolog.query(f"{predicate}(X)"))
+                    if instances:
+                        valid_instances = []
+                        for instance in instances:
+                            instance_value = instance['X']
+                            if isinstance(instance_value, (str, int)) or (hasattr(instance_value, 'name') and not str(instance_value).startswith('_')):
+                                valid_instances.append(instance_value)
+                        if valid_instances:
+                            type_predicates[predicate] = valid_instances
+                except Exception as e:
+                    continue
+</div>
+    
+    <div class="key-point">
+        <strong>Nessuna assunzione:</strong> Il sistema trova automaticamente tutti i tipi senza sapere in anticipo cosa cercare
+    </div>
+</div>
+
+<!-- SLIDE 4: INFERENZA SIGNATURE -->
+<div class="slide">
+    <h1>4. Inferenza delle Signature dei Fluent: nome[tipi]</h1>
+    
+    
+    <div class="example-flow">
+        <div class="example-step step-input">
+            <h4>Utilizzi nel Prolog</h4>
+            <div class="code-block prolog">% <In init_state>
+at(b1,1,1), at(b2,2,2)
+
+% In precondizioni azioni
+at(Block, X1, Y1)
+
+% In effetti azioni
+at(Block, X2, Y2)</div>
+        </div>
+        
+        <div class="arrow">→</div>
+        
+        <div class="example-step step-output">
+            <h4>Signature Inferita</h4>
+            <div class="code-block json">"fluent_signatures": {
+    "at": ["block", "pos", "pos"]
+}</div>
+        </div>
+    </div>
+    
+    <h2>Dai vari stati</h2>
+    
+    <div class="code-block python">
+        for action in knowledge["actions"]:
+        type_constraints = action.get("type_constraints", {})
+        action_score = len(type_constraints)  # Score basato su ricchezza di type info
+        
+        # Analizza add_effects per signature autoritativa
+        for add_eff in action.get("add_effects", []):
+            fluent_name = add_eff["name"]
+            args = add_eff["args"]
+            
+            signature = []
+            valid_signature = True
+            
+            for arg in args:
+                if arg in type_constraints:
+                    signature.append(type_constraints[arg])
+                elif arg.startswith("_"):
+                    valid_signature = False
+                    break
+                else:
+                    inferred_type = _infer_type_from_constant_value(arg, knowledge)
+                    if inferred_type != "Unknown":
+                        signature.append(inferred_type)
+                    else:
+                        valid_signature = False
+                        break
+        ...
+            </div>
+    <h2>.. dai Type Constraints dalle Azioni, etc...</h2>
+    <div class="code-block python"># Analizza azioni con type constraints
+for action in knowledge['actions']:
+    action_score = len(action.get('type_constraints', []))
+    
+    # Crea mapping parametro → tipo per questa azione
+    param_to_type = {}
+    for constraint in action['type_constraints']:
+        # "block(Param2)" → param_to_type["Param2"] = "block"
+        type_name, param_names = parse_constraint(constraint)
+        param_to_type[param_names] = type_name
+    
+    # Analizza precondizioni
+    for precond in action['preconditions']:
+    ... </div>
+
+
+    
+    <div class="key-point">
+        <strong>Strategia multi-fonte:</strong> Initial state ha priorità, poi azioni "pesate" per ricchezza di type constraints (le "end" action ne hanno di meno --> sovrascrivono)
+    </div>
+</div>
+
+<!-- SLIDE 5: INFERENZA TIPI PARAMETRI -->
+<div class="slide">
+    <h1>5. Inferenza dei Tipi: clear(Param1) --> cos'è Param1?</h1>
+    
+    <h2>Esempio Pratico di Inferenza</h2>
+    
+    <div class="example-flow">
+        <div class="example-step step-input">
+            <h4>Parametro Senza Tipo</h4>
+            <div class="code-block prolog">% In un'azione vediamo:
+at(Param1, Param2, Param3)
+clear(Param1)
+ontable(Param1)</div>
+        </div>
+        
+        <div class="arrow">→</div>
+        
+        <div class="example-step step-output">
+            <h4>Tipo Inferito</h4>
+            <div class="code-block json">// Signature conosciute:
+// at: ["block", "pos", "pos"]
+// clear: ["block"]  
+// ontable: ["block"]
+
+// Param1 sempre in posizione 0 di fluent "block
+// Param1 in posizione 0 di at"
+"Param1": "block"</div>
+        </div>
+    </div>
+    
+    <h2>Logica </h2>
+    <div class="code-block python">def infer_missing_types(acts, fluent_sigs):
+    # Analizza uso di ogni parametro in tutti i fluent
+    for act in acts:
+        for pred in act.get("preconditions", []):
+            fname = pred["name"]  # es: "at"
+            sig = fluent_sigs.get(fname, [])  # es: ["block", "pos", "pos"]
+            
+            for idx, arg in enumerate(pred["args"]):  # es: [Param1, Param2, Param3]
+                if arg.startswith("Param") and idx < len(sig):
+                    # Param1 in posizione 0 di "at" → deve essere "block"
+                    all_param_type_info[arg].add(sig[idx])</div>
+    
+    <div class="key-point">
+        <strong>Pattern analysis:</strong> Se Param1 appare sempre come primo argomento di fluent che si aspettano "block", allora Param1 è "block"
+    </div>
+</div>
+
+
+
+<div class="slide">
+    <h1>6. Gestione delle Wildcard</h1>
+    
+
+    
+    <div class="wildcard-demo">
+        <h3>Esempio Passo-Passo</h3>
+        
+        <div class="example-flow">
+            <div class="example-step step-input">
+                <h4>Prolog Input</h4>
+                <div class="code-block prolog">% Negative precondition
+[at(_, X2, Y2)]</div>
+            </div>
+            
+            <div class="arrow">→</div>
+            
+            <div class="example-step step-output">
+                <h4>JSON Strutturato</h4>
+                <div class="code-block json">{
+    "name": "at",
+    "args": ["_1244", "Param5", "Param6"],
+    "wildcard_positions": [0]
+}</div>
+            </div>
+        </div>
+        
+        <div class="example-flow">
+            <div class="example-step step-input">
+                <h4>Inferenza Tipo</h4>
+                <div class="code-block python"># Signature di "at": ["block", "pos", "pos"]
+# Wildcard in posizione 0 → tipo "block"
+vtype = fluent_sig[0]  # "block"</div>
+            </div>
+            
+            <div class="arrow">→</div>
+            
+            <div class="example-step step-output">
+                <h4>UP Code Generato</h4>
+                <div class="code-block python">any_action_0 = Variable('any_action_0', Block)
+action.add_precondition(
+    Not(Exists(at(any_action_0, Param5, Param6), 
+               any_action_0))
+)</div>
+            </div>
+        </div>
+    </div>
+    
+    <h2>Inferenza del Tipo per le Wildcard</h2>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
+            <h4>Strategia 1: Usa Signature del Fluent</h4>
+            <div class="code-block prolog">% Negative precondition con wildcard
+action(move_table_to_table_start(...),
+  [...],
+  [at(_, X2, Y2)],  % Wildcard in posizione 0
+  ...)</div>
+            
+            <div class="code-block python"># Signature già inferita in precedenza
+knowledge["fluent_signatures"]["at"] = ["block", "pos", "pos"]
+
+# Inferenza wildcard
+fluent_name = "at"
+position = 0  # Prima posizione della wildcard
+sig = knowledge["fluent_signatures"]["at"]  # ["block", "pos", "pos"]
+return sig[0]  # "block"
+
+# Risultato: Variable('any_action_0', Block)</div>
+        </div>
+        
+        <div style="background: #f3e5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #9c27b0;">
+            <h4>Strategia 2: Cerca nell'Azione Stessa</h4>
+            <div class="code-block prolog">% Dalal stessa azione unendo negative precondition + add effect
+action(move_table_to_table_start(...),
+  [...],
+  [moving_table_to_table(_, Block, _, _, _, _)],  % Wildcard pos 0
+  [],
+  [agent(Agent), block(Block)],
+  [add(moving_table_to_table(Agent, Block, X1, Y1, X2, Y2))]  % Uso completo
+)</div>
+            
+            <div class="code-block python"># Signature di moving_table_to_table non ancora disponibile
+# MA nell'add_effect della stessa azione:
+add_effect = "moving_table_to_table(Agent, Block, X1, Y1, X2, Y2)" 
+args = ["Agent", "Block", "X1", "Y1", "X2", "Y2"]
+arg_at_position = args[0]  # "Agent"
+
+# Type constraints di questa azione
+type_constraints = {"Agent": "agent", "Block": "block"}
+return type_constraints["Agent"]  # "agent"
+
+# Risultato: Variable('any_action_0', Agent)</div>
+        </div>
+    </div>
+    
+    <h2>Quando?</h2>
+    <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <ul style="font-size: 1.1em;">
+            <li><strong>Strategia 1:</strong> Quando il fluent è già stato analizzato in altre azioni e abbiamo una signature consolidata</li>
+            <li><strong>Strategia 2:</strong> Quando il fluent appare per la prima volta o la signature non è ancora completa, ma l'azione stessa ci dà indizi</li>
+        </ul>
+    </div>
+</div>
+
+<!-- SLIDE 8: ESEMPIO COMPLETO -->
+<div class="slide">
+    <h1>7. Esempio End-to-End: move_table_to_table_start</h1>
+    
+    <div class="comparison-grid">
+        <div class="comparison-side before">
+            <h3>Input Prolog</h3>
+            <div class="code-block prolog">action(move_table_to_table_start(Agent, Block, X1, Y1, X2, Y2), 
+  [ontable(Block), at(Block, X1, Y1), available(Agent), clear(Block)],
+  [<span class="highlight">at(_, X2, Y2)</span>,on(Block, _), moving_table_to_table(_, Block, _, _, _, _)],
+  [],
+  [agent(Agent), pos(X1, Y1), pos(X2, Y2), block(Block)],
+  [del(available(Agent)), del(clear(Block)), del(ontable(Block)), del(at(Block, X1, Y1)),
+   add(moving_table_to_table(Agent, Block, X1, Y1, X2, Y2))]
+).</div>
+        </div>
+        
+        <div class="comparison-side after">
+            <h3>Output UP</h3>
+            <div class="code-block python">
+         
+                <span class="highlight">any_move_table_to_table_start_0 = Variable('any_move_table_to_table_start_0', Block)
+                move_table_to_table_start.add_precondition(Not(Exists(at(any_move_table_to_table_start_0, Param5, Param6), any_move_table_to_table_start_0))) </span>
+                <hr style="border: 2px solid #ccc; margin: 20px 0;">
+
+                any_move_table_to_table_start_1 = Variable('any_move_table_to_table_start_1', Block)
+                move_table_to_table_start.add_precondition(Not(Exists(on(Param2, any_move_table_to_table_start_1), any_move_table_to_table_start_1)))
+                <hr style="border: 2px solid #ccc; margin: 20px 0;">
+
+                any_move_table_to_table_start_0 = Variable('any_move_table_to_table_start_0', Agent)
+                any_move_table_to_table_start_2 = Variable('any_move_table_to_table_start_2', Pos)
+                any_move_table_to_table_start_3 = Variable('any_move_table_to_table_start_3', Pos)
+                any_move_table_to_table_start_4 = Variable('any_move_table_to_table_start_4', Pos)
+                any_move_table_to_table_start_5 = Variable('any_move_table_to_table_start_5', Pos)
+                move_table_to_table_start.add_precondition(Not(Exists(moving_table_to_table
+                (any_move_table_to_table_start_0, Param2, any_move_table_to_table_start_2, any_move_table_to_table_start_3, 
+                any_move_table_to_table_start_4, any_move_table_to_table_start_5), any_move_table_to_table_start_0, any_move_table_to_table_start_2, 
+                any_move_table_to_table_start_3, any_move_table_to_table_start_4, any_move_table_to_table_start_5)))
+
+</div>
+        </div>
+    </div>
+    
+    <h2>Trasformazioni Chiave</h2>
+    <ul style="font-size: 1.1em;">
+        <li><strong>Parametri normalizzati:</strong> <span class="mini-code">Agent → Param1</span>, <span class="mini-code">Block → Param2</span></li>
+        <li><strong>Tipi inferiti:</strong> <span class="mini-code">agent</span>, <span class="mini-code">block</span>, <span class="mini-code">pos</span> </li>
+        <li><strong>Wildcard → Variables:</strong> <span class="mini-code">at(_, X2, Y2) → Not(Exists(at(any_0, Param5, Param6), any_0))</span></li>
+        <li><strong>Effetti strutturati:</strong> <span class="mini-code">del(available(Agent)) → add_effect(available(Param1), False)</span></li>
+    </ul>
+</div>
+
+<!-- SLIDE 9: VALIDAZIONE -->
+<div class="slide">
+    <h1>8. Output della Pipeline</h1>
+    
+    <h2>Cosa Produce il Sistema</h2>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h4>📊 1. JSON Strutturato</h4>
+            <div class="code-block json">{
+    "types": {
+        "agent": ["a1", "a2"],
+        "block": ["b1", "b2", "b3", "b4", "b5", "b6"]
+    },
+    "fluent_signatures": {
+        "at": ["block", "pos", "pos"],
+        "on": ["block", "block"],
+        "clear": ["block"]
+    },
+    "actions": [
+        {
+            "name": "move_table_to_table_start",
+            "parameters": ["Param1", "Param2", ...],
+            "neg_preconditions": [
+                {
+                    "name": "at",
+                    "args": ["_1244", "Param5", "Param6"],
+                    "wildcard_positions": [0]
+                }
+            ]
+        }
+    ]
+}</div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h4>🐍 2. Codice Unified Planning</h4>
+            <div class="code-block python">Agent = UserType('agent')
+Block = UserType('block')
+Pos = UserType('pos')
+
+at = Fluent('at', BoolType(), p0=Block, p1=Pos, p2=Pos)
+on = Fluent('on', BoolType(), p0=Block, p1=Block)
+
+move_table_to_table_start = InstantaneousAction(
+    'move_table_to_table_start', 
+    Param1=Agent, Param2=Block, ...
+)
+
+# Wildcard convertite
+any_0 = Variable('any_0', Block)
+move_table_to_table_start.add_precondition(
+    Not(Exists(at(any_0, Param5, Param6), any_0))
+)</div>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h4>📋 3. File PDDL</h4>
+            <div class="code-block pddl">(define (domain from_prolog)
+  (:requirements :strips :typing :negative-preconditions)
+  (:types agent block pos - object)
+  (:predicates 
+    (at ?p0 - block ?p1 - pos ?p2 - pos)
+    (on ?p0 - block ?p1 - block)
+    (clear ?p0 - block)
+    (available ?p0 - agent)
+    (ontable ?p0 - block)
+  )
+  
+  (:action move_table_to_table_start
+    :parameters (?param1 - agent ?param2 - block ...)
+    :precondition (and
+      (ontable ?param2)
+      (available ?param1)
+      (not (exists (?any0 - block) 
+           (at ?any0 ?param5 ?param6)))
+    )
+    :effect (and ...)
+  )
+)</div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h4>🎯 4. Risultati Planning</h4>
+            <div class="code-block">===== COMPARISON RESULTS =====
++---------------+-------------+---------+-------------+
+|    Planner    |    Search   | Success | Plan Length |
++---------------+-------------+---------+-------------+
+| fast_downward | lazy_greedy |   Yes   |     4      |
+| fast_downward |   astar_ff  |   Yes   |     4      |
++---------------+-------------+---------+-------------+
+
+===== PLANS =====
+
+fast_downward_lazy_greedy plan:
+(move_onblock_to_table_start a1 b4 b1 x1 x1 x10 x10)
+(move_onblock_to_table_end a1 b4 x1 x1 x10 x10)
+(move_table_to_block_start a2 b4 b5 x10 x10 x2 x2)
+(move_table_to_block_end a2 b4 b5 x10 x10 x2 x2)
+...</div>
+        </div>
+    </div>
+
+    
+    <h2>Pipeline Completa in 1.3 Secondi</h2>
+    <div class="flow-diagram">
+        <div class="flow-box">kb_hl.pl</div>
+        <div class="arrow">→</div>
+        <div class="flow-box">JSON</div>
+        <div class="arrow">→</div>
+        <div class="flow-box">UP Code</div>
+        <div class="arrow">→</div>
+        <div class="flow-box">PDDL</div>
+        <div class="arrow">→</div>
+        <div class="flow-box">Piano</div>
+    </div>
+</div>
+
+<!-- SLIDE 10: INNOVAZIONI TECNICHE -->
+<div class="slide">
+    <h1>9. Tecniche Principali</h1>
+    
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px;">
+        <div>
+            <h3>1. No-Assumption</h3>
+            <div class="code-block python"># Nessuna assunzione hard-coded
+predicates_found = set()
+type_patterns = re.findall(r'^([a-zA-Z_][a-zA-Z0-9_]*)\([^)]+\)\s*\.', 
+                          content, re.MULTILINE)
+
+# Trova automaticamente tutti i tipi
+for predicate in predicates_found:
+    instances = list(prolog.query(f"{predicate}(X)"))</div>
+            
+            <h3>2. Conversione Numerica</h3>
+            <div class="code-block python"># Converte numeri in identificatori validi UP
+def convert_number_if_needed(value):
+    if isinstance(value, str) and value.isdigit():
+        return f"x{value}"  # 1 → x1, 10 → x10</div>
+        </div>
+        
+        <div>
+            <h3>3. Sincronizzazione tra azioni</h3>
+            <div class="code-block python"># Propaga tipi tra azioni correlate
+def _propagate_types_across_related_actions(acts, fluent_sigs):
+    # Raggruppa azioni per fluent condivisi
+    for fname, action_indices in fluent_action_map.items():
+        # Propaga informazioni sui tipi</div>
+            
+            <h3>4. Wildcard gestite</h3>
+            <div class="code-block python"># Mantiene semantica originale
+if i in wilds or a.startswith("_"):
+    var = f"any_{name}_{i}"
+    vtype = _infer_wildcard_type_from_context(pname, i, act, knowledge)
+    lines.append(f"{var} = Variable('{var}', {vtype.capitalize()})")</div>
+        </div>
+    </div>
+    
+    <h2>Impatto Pratico</h2>
+    <div style="background: #e8f5e8; padding: 25px; border-radius: 10px; border-left: 5px solid #27ae60; font-size: 1.2em;">
+        Una volta ultimato, qualsiasi knowledge base Prolog potrà essere utilizzata con planner moderni PDDL
+    </div>
+</div>

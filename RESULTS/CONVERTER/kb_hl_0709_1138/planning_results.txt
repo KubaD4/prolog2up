@@ -1,0 +1,19 @@
+Planning Results
+Domain: /Users/kuba/prolog_pddl_unifiedPlanning/RESULTS/CONVERTER/kb_hl_0709_1138/generated_domain.pddl
+Problem: /Users/kuba/prolog_pddl_unifiedPlanning/RESULTS/CONVERTER/kb_hl_0709_1138/generated_problem.pddl
+Generated: 2025-07-09 11:39:00
+
+===== COMPARISON RESULTS =====
++---------------+-------------+---------+-------------+-----------------+------------------------+-----------------+
+|    Planner    |    Search   | Success | Plan Length | Search Time (s) |     Total Time (s)     | Expanded States |
++---------------+-------------+---------+-------------+-----------------+------------------------+-----------------+
+| fast_downward | lazy_greedy |    No   |     N/A     |       N/A       | 0.0005838871002197266  |       N/A       |
+| fast_downward |   astar_ff  |    No   |     N/A     |       N/A       | 0.00012683868408203125 |       N/A       |
++---------------+-------------+---------+-------------+-----------------+------------------------+-----------------+
+
+===== PLANS =====
+
+fast_downward_lazy_greedy: FAILED - PDDL Validation Failed: High arity predicates detected: ['moving_table_to_table(6 params)', 'moving_onblock_to_block(8 params)', 'moving_onblock_to_table(6 params)']. Some planners have arity limits. None
+
+fast_downward_astar_ff: FAILED - PDDL Validation Failed: High arity predicates detected: ['moving_table_to_table(6 params)', 'moving_onblock_to_block(8 params)', 'moving_onblock_to_table(6 params)']. Some planners have arity limits. None
+

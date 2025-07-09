@@ -1,0 +1,1343 @@
+{
+    "types": {
+        "location": [
+            "location1",
+            "location2"
+        ],
+        "container": [
+            "c1",
+            "c2"
+        ],
+        "crane": [
+            "crane1",
+            "crane2"
+        ],
+        "resources": [
+            "robot(_986)",
+            "crane(_986)"
+        ],
+        "robot": [
+            "r1"
+        ]
+    },
+    "fluents": [
+        "moving_ground_to_top",
+        "available",
+        "loading_container",
+        "on",
+        "at",
+        "unloading_container",
+        "moving_robot",
+        "clear",
+        "moving_ground_to_ground",
+        "moving_top_to_ground",
+        "on_ground",
+        "moving_top_to_top"
+    ],
+    "fluent_signatures": {
+        "moving_ground_to_top": [
+            "crane",
+            "container",
+            "container",
+            "location"
+        ],
+        "available": [
+            "crane"
+        ],
+        "loading_container": [
+            "crane",
+            "robot",
+            "container",
+            "location"
+        ],
+        "on": [
+            "container",
+            "container"
+        ],
+        "at": [
+            "container",
+            "location"
+        ],
+        "unloading_container": [
+            "crane",
+            "robot",
+            "container",
+            "location"
+        ],
+        "moving_robot": [
+            "robot",
+            "location",
+            "location"
+        ],
+        "clear": [
+            "container"
+        ],
+        "moving_ground_to_ground": [
+            "crane",
+            "container",
+            "location",
+            "location"
+        ],
+        "moving_top_to_ground": [
+            "crane",
+            "container",
+            "container",
+            "location"
+        ],
+        "on_ground": [
+            "container"
+        ],
+        "moving_top_to_top": [
+            "crane",
+            "container",
+            "container",
+            "container",
+            "location"
+        ]
+    },
+    "init_state": [
+        {
+            "name": "at",
+            "args": [
+                "c1",
+                "location1"
+            ]
+        },
+        {
+            "name": "on_ground",
+            "args": [
+                "c1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "c2",
+                "location1"
+            ]
+        },
+        {
+            "name": "on",
+            "args": [
+                "c2",
+                "c1"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "c2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "r1",
+                "location1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "r1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "crane1",
+                "location1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "crane1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "crane2",
+                "location2"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "crane2"
+            ]
+        }
+    ],
+    "goal_state": [
+        {
+            "name": "at",
+            "args": [
+                "c1",
+                "location1"
+            ]
+        },
+        {
+            "name": "on_ground",
+            "args": [
+                "c1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "c2",
+                "location2"
+            ]
+        },
+        {
+            "name": "on_ground",
+            "args": [
+                "c2"
+            ]
+        },
+        {
+            "name": "clear",
+            "args": [
+                "c2"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "r1",
+                "location1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "r1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "crane1",
+                "location1"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "crane1"
+            ]
+        },
+        {
+            "name": "at",
+            "args": [
+                "crane2",
+                "location2"
+            ]
+        },
+        {
+            "name": "available",
+            "args": [
+                "crane2"
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "move_ground_to_top_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "container",
+                "Param4": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on_ground",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param3",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "moving_ground_to_top",
+                    "args": [
+                        "_1596",
+                        "Param2",
+                        "_1600",
+                        "_1602"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_ground_to_top",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on_ground",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_ground_to_top_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "container",
+                "Param4": "container"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_ground_to_top",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "moving_ground_to_top",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "load_container_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "robot",
+                "Param3": "container",
+                "Param4": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param3",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "loading_container",
+                    "args": [
+                        "_1586",
+                        "_1588",
+                        "Param3",
+                        "_1592"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        1,
+                        3
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "loading_container",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "load_container_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "robot",
+                "Param3": "container",
+                "Param4": "container"
+            },
+            "preconditions": [
+                {
+                    "name": "loading_container",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on",
+                    "args": [
+                        "Param3",
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "loading_container",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "unload_container_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "robot",
+                "Param3": "container",
+                "Param4": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param3",
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "unloading_container",
+                    "args": [
+                        "_1576",
+                        "_1578",
+                        "Param3",
+                        "_1582"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        1,
+                        3
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "unloading_container",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param3",
+                        "Param2"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "unload_container_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "robot",
+                "Param3": "container",
+                "Param4": "container"
+            },
+            "preconditions": [
+                {
+                    "name": "unloading_container",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on_ground",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "unloading_container",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_ground_to_ground_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "location",
+                "Param4": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on_ground",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "moving_ground_to_ground",
+                    "args": [
+                        "_1574",
+                        "Param2",
+                        "_1578",
+                        "_1580"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_ground_to_ground",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on_ground",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_ground_to_ground_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "container",
+                "Param4": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_ground_to_ground",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on_ground",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "moving_ground_to_ground",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_top_to_ground_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "container",
+                "Param4": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "moving_top_to_ground",
+                    "args": [
+                        "_1576",
+                        "Param2",
+                        "_1580",
+                        "_1582"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_top_to_ground",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_top_to_ground_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "container",
+                "Param4": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_top_to_ground",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on_ground",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "moving_top_to_ground",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_top_to_top_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "container",
+                "Param4": "container",
+                "Param5": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param3",
+                        "Param5"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param4",
+                        "Param5"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param4"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "moving_top_to_top",
+                    "args": [
+                        "_1600",
+                        "Param2",
+                        "_1604",
+                        "_1606",
+                        "_1608"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        2,
+                        3,
+                        4
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_top_to_top",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param3"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_top_to_top_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3",
+                "Param4",
+                "Param5"
+            ],
+            "type_constraints": {
+                "Param1": "crane",
+                "Param2": "container",
+                "Param3": "container",
+                "Param4": "container",
+                "Param5": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_top_to_top",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "on",
+                    "args": [
+                        "Param2",
+                        "Param4"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param2",
+                        "Param5"
+                    ]
+                },
+                {
+                    "name": "clear",
+                    "args": [
+                        "Param2"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "moving_top_to_top",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3",
+                        "Param4",
+                        "Param5"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_robot_start",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3"
+            ],
+            "type_constraints": {
+                "Param1": "robot",
+                "Param2": "location",
+                "Param3": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param1",
+                        "Param2"
+                    ]
+                }
+            ],
+            "neg_preconditions": [
+                {
+                    "name": "moving_robot",
+                    "args": [
+                        "_1552",
+                        "_1554",
+                        "_1556"
+                    ],
+                    "wildcard_positions": [
+                        0,
+                        1,
+                        2
+                    ]
+                }
+            ],
+            "add_effects": [
+                {
+                    "name": "moving_robot",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                },
+                {
+                    "name": "at",
+                    "args": [
+                        "Param1",
+                        "Param2"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "move_robot_end",
+            "parameters": [
+                "Param1",
+                "Param2",
+                "Param3"
+            ],
+            "type_constraints": {
+                "Param1": "robot",
+                "Param2": "container",
+                "Param3": "location"
+            },
+            "preconditions": [
+                {
+                    "name": "moving_robot",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3"
+                    ]
+                }
+            ],
+            "neg_preconditions": [],
+            "add_effects": [
+                {
+                    "name": "at",
+                    "args": [
+                        "Param1",
+                        "Param3"
+                    ]
+                },
+                {
+                    "name": "available",
+                    "args": [
+                        "Param1"
+                    ]
+                }
+            ],
+            "del_effects": [
+                {
+                    "name": "moving_robot",
+                    "args": [
+                        "Param1",
+                        "Param2",
+                        "Param3"
+                    ]
+                }
+            ]
+        }
+    ]
+}

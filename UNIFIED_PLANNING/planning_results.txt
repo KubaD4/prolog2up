@@ -1,0 +1,31 @@
+Planning Results
+Domain: /Users/kuba/prolog_pddl_unifiedPlanning/UNIFIED_PLANNING/blocks_domain.pddl
+Problem: /Users/kuba/prolog_pddl_unifiedPlanning/UNIFIED_PLANNING/blocks_problem.pddl
+Generated: 2025-05-28 15:58:00
+
+===== COMPARISON RESULTS =====
++---------------+-------------+---------+-------------+-----------------+--------------------+-----------------+
+|    Planner    |    Search   | Success | Plan Length | Search Time (s) |   Total Time (s)   | Expanded States |
++---------------+-------------+---------+-------------+-----------------+--------------------+-----------------+
+| fast_downward | lazy_greedy |   Yes   |      8      |     0.070338    | 1.9087707996368408 |       133       |
+| fast_downward |   astar_ff  |   Yes   |      4      |     0.091614    | 1.995488166809082  |        15       |
++---------------+-------------+---------+-------------+-----------------+--------------------+-----------------+
+
+===== PLANS =====
+
+fast_downward_lazy_greedy plan:
+(move_onblock_to_table_start a1 b5 b2 pos_2_2 pos_10_10)
+(move_onblock_to_table_start a2 b4 b1 pos_1_1 pos_10_10)
+(move_onblock_to_table_end a1 b5 pos_2_2 pos_10_10)
+(move_table_to_block_start a1 b5 b1 pos_10_10 pos_1_1)
+(move_onblock_to_table_end a2 b4 pos_1_1 pos_10_10)
+(move_table_to_block_end a1 b5 b1 pos_10_10 pos_1_1)
+(move_onblock_to_block_start a1 b5 b4 b1 pos_1_1 pos_10_10)
+(move_onblock_to_block_end a1 b5 b4 pos_1_1 pos_10_10)
+
+fast_downward_astar_ff plan:
+(move_onblock_to_table_start a1 b4 b1 pos_1_1 pos_10_10)
+(move_onblock_to_table_end a1 b4 pos_1_1 pos_10_10)
+(move_onblock_to_block_start a1 b5 b4 b2 pos_2_2 pos_10_10)
+(move_onblock_to_block_end a1 b5 b4 pos_2_2 pos_10_10)
+

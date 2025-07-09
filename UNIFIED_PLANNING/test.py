@@ -102,26 +102,6 @@ move_table_to_table_start.add_precondition(empty(l2))
 move_table_to_table_start.add_precondition(Not(moving_table_to_table(a, b, l1, l2)))
 move_table_to_table_start.add_precondition(Not(moving_table_to_block(a, b, l1, l2)))
 
-# TODO: manca:
-
-# Prima parte: non ci deve essere alcuna azione moving_table_to_table in corso
-""" move_table_to_table_start.add_precondition(
-    Not(Exists(
-        moving_table_to_table(a, b, x1, y1, x2, y2),
-        b, x1, y1, x2, y2
-    ))
-)
-
-# Seconda parte: non ci deve essere alcuna azione moving_table_to_block in corso
-move_table_to_table_start.add_precondition(
-    Not(Exists(
-        moving_table_to_block(a, b, b2, x1, y1, x2, y2),
-        b, b2, x1, y1, x2, y2
-    ))
-) """
-
-# TODO: guarda risposta Claude per come riscriverlo bene. Poi fallo rifare a per tutti
-
 
 # 3) no other b is being moved *from* or *to* here
 b2 = Variable("b2", Block)

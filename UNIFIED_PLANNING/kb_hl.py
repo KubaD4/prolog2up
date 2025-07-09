@@ -5,7 +5,7 @@ import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model import Variable, InstantaneousAction, Problem
 from unified_planning.io import PDDLWriter
-from unified_planning.model.operators import OperatorKind
+
 
 up.shortcuts.get_environment().credits_stream = None
 
@@ -542,7 +542,7 @@ def solve_problem():
 print(f"\nTime until function calls: {time.time() - start_time:.4f} seconds")
 
 export_to_pddl()
-solve_problem()
+#solve_problem()
 
 import unified_planning
 print(unified_planning.__version__)
