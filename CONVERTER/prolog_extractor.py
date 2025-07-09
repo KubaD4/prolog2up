@@ -2,57 +2,108 @@ import time
 import re
 from pyswip import Prolog
 
+def improve_type_constraints_inference(knowledge):
+    """
+    Post-process actions to infer missing type constraints based on parameter names
+    and their usage in fluents.
+    """
+    print("\nImproving type constraint inference...")
+    
+    # Build a mapping of parameter patterns to likely types
+    param_patterns = {
+        'agent': ['agent', 'a'],
+        'block': ['block', 'b'],
+        'pos': ['x', 'y', 'pos', 'loc'],
+        'location': ['location', 'loc'],
+        'container': ['container', 'c'],
+        'robot': ['robot', 'r']
+    }
+    
+    for action in knowledge['actions']:
+        action_name = action['name']
+        parameters = action['parameters']
+        param_values = action.get('param_values', [])
+        type_constraints = action.get('_type_constraint_dict', {})
+        
+        # For each parameter without a type constraint
+        for idx, (param_name, param_value) in enumerate(zip(parameters, param_values)):
+            if param_name not in type_constraints or type_constraints.get(param_name) == 'Unknown':
+                # Try to infer type from parameter value/name
+                inferred_type = None
+                param_value_lower = str(param_value).lower()
+                
+                # Check against patterns
+                for type_name, patterns in param_patterns.items():
+                    for pattern in patterns:
+                        if pattern in param_value_lower:
+                            inferred_type = type_name
+                            break
+                    if inferred_type:
+                        break
+                
+                # Special case for numeric coordinates
+                if not inferred_type and param_value_lower in ['x1', 'y1', 'x2', 'y2', 'x3', 'y3']:
+                    inferred_type = 'pos'
+                
+                # If still no type, look at how the parameter is used in fluents
+                if not inferred_type:
+                    # Check in preconditions and effects
+                    for section in ['preconditions', 'add_effects', 'del_effects']:
+                        for item_str in action.get(section, []):
+                            if param_name in item_str:
+                                # Try to infer from fluent usage
+                                if 'at(' in item_str and param_name in item_str.split('at(')[1]:
+                                    # If used in at() fluent, likely a position or block
+                                    # Check position in the fluent
+                                    import re
+                                    at_match = re.search(r'at\(([^,]+),([^,]+),([^)]+)\)', item_str)
+                                    if at_match:
+                                        args = [at_match.group(1).strip(), at_match.group(2).strip(), at_match.group(3).strip()]
+                                        if param_name in args[1:]:  # positions 2 and 3 are coordinates
+                                            inferred_type = 'pos'
+                                        elif param_name == args[0]:  # position 1 is the object
+                                            inferred_type = 'block'
+                                
+                                elif 'available(' in item_str and param_name in item_str:
+                                    inferred_type = 'agent'
+                                elif 'on(' in item_str and param_name in item_str:
+                                    inferred_type = 'block'
+                                elif 'clear(' in item_str and param_name in item_str:
+                                    inferred_type = 'block'
+                                elif 'ontable(' in item_str and param_name in item_str:
+                                    inferred_type = 'block'
+                
+                if inferred_type:
+                    print(f"  Inferred type for {action_name}.{param_name} ({param_value}): {inferred_type}")
+                    type_constraints[param_name] = inferred_type
+                    
+                    # Also update the string type constraints
+                    constraint_str = f"{inferred_type}({param_name})"
+                    if constraint_str not in action['type_constraints']:
+                        action['type_constraints'].append(constraint_str)
+        
+        # Update the action's type constraint dict
+        action['_type_constraint_dict'] = type_constraints
+    
+    return knowledge
+
+
 def extract_prolog_knowledge(prolog_file):
     """Extract knowledge from Prolog file using PySwip without making assumptions about names"""
     start_time = time.time()
     print(f"Starting extraction from Prolog file...")
     
-    # Initialize Prolog engine
     prolog = Prolog()
-    
     # Load the Prolog file
     prolog.consult(prolog_file)
     type_predicates = {}
 
-    # Metodo generale
     try:
         
         predicates_found = set()
         
-        
-        # #    group(1)=nome, group(2)=tutto quello che sta dentro le parentesi
-        # signatures = re.findall(
-        #     r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*\(\s*([^)]+)\)\s*\.',
-        #     content,
-        #     re.MULTILINE
-        # )
-
-        # for name, args_str in signatures:
-        #     arity = args_str.count(',') + 1
-        #     vars_list = [f"X{i}" for i in range(arity)]
-        #     query = f"{name}({','.join(vars_list)})"
-        #     try:
-        #         answers = list(prolog.query(query))
-        #     except Exception:
-        #         # se il predicato non è esportato o non esiste, skip
-        #         continue
-        #     if not answers:
-        #         continue
-        #     # raccogli tutte le tuple valide (senza variabili anonime "_")
-        #     instances = []
-        #     for ans in answers:
-        #         tpl = tuple(ans[var] for var in vars_list)
-        #         # scarta tutte le tuple con valori che cominciano per "_" (anonimi)
-        #         if all(not str(v).startswith('_') for v in tpl):
-        #             instances.append(tpl)
-        #     if instances:
-        #         # memorizza solo le istanze distinte
-        #         type_predicates[name] = sorted(set(instances))
-        
-        
         with open(prolog_file, 'r') as f:
             content = f.read()
-            
         # Cerca nomeTipo(istanza).
         import re
         type_patterns = re.findall(r'^([a-zA-Z_][a-zA-Z0-9_]*)\([^)]+\)\s*\.', content, re.MULTILINE)
@@ -62,10 +113,8 @@ def extract_prolog_knowledge(prolog_file):
         action_patterns = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)\([^)]+\)', content)
         predicates_found.update([p for p in action_patterns if p not in ['action', 'add', 'del']])
         
-        
         for predicate in predicates_found:
             try:
-                # Testa se questo predicato ha istanze unarie
                 instances = list(prolog.query(f"{predicate}(X)"))
                 if instances:
                     valid_instances = []
@@ -73,7 +122,6 @@ def extract_prolog_knowledge(prolog_file):
                         instance_value = instance['X']
                         if isinstance(instance_value, (str, int)) or (hasattr(instance_value, 'name') and not str(instance_value).startswith('_')):
                             valid_instances.append(instance_value)
-                    
                     if valid_instances:
                         type_predicates[predicate] = valid_instances
             except Exception as e:
@@ -82,14 +130,6 @@ def extract_prolog_knowledge(prolog_file):
     except Exception as e:
         print(f"Warning: General type extraction failed: {e}")
         print("Falling back to manual type detection...")
-        
-        # for predicate in ["block", "agent", "mela", "pos", "cuoco", "cibo", "strumento", "persona", "porta", "stanza", "vegetale", "piano"]:
-        #     try:
-        #         instances = list(prolog.query(f"{predicate}(X)"))
-        #         if instances:
-        #             type_predicates[predicate] = [i['X'] for i in instances]
-        #     except Exception:
-        #         pass
     
     # Extract initial state
     init_state_query = list(prolog.query("init_state(X)"))
@@ -124,7 +164,7 @@ def extract_prolog_knowledge(prolog_file):
             if '(' in action_head:
                 action_name = action_head.split('(')[0]
                 
-                # Extract parameters from head
+                # Extract parameters from head - IMPROVED VERSION
                 params_match = re.match(r'[^(]+\((.*)\)', action_head)
                 param_values = []
                 if params_match:
@@ -151,39 +191,116 @@ def extract_prolog_knowledge(prolog_file):
                 # Create parameter names (Param1, Param2, ...)
                 param_names = [f"Param{i+1}" for i in range(len(param_values))]
                 
-                # Create mapping from original parameter values to param names
-                param_mapping = {str(val): name for val, name in zip(param_values, param_names)}
+                # CRITICAL FIX: Create a more robust parameter mapping
+                # that preserves the original parameter order and avoids confusion
+                param_mapping = {}
+                param_order_map = {}  # Track the order of parameters
+                
+                for idx, val in enumerate(param_values):
+                    param_name = param_names[idx]
+                    param_mapping[str(val)] = param_name
+                    param_order_map[param_name] = idx
                 
                 # Function to replace parameter values with names in expressions
-                def replace_params(expr, mapping):
-                    # Convert expression to string if it's not already
+                def replace_params(expr, mapping, param_values_list):
+                    """
+                    Enhanced parameter replacement that handles ambiguous cases better
+                    """
                     expr_str = str(expr)
-                    # For each parameter value, replace it with the corresponding name
-                    for val, name in mapping.items():
-                        # Replace parameters but be careful to only replace whole words
-                        # and not parts of other words
-                        expr_str = re.sub(r'\b' + re.escape(val) + r'\b', name, expr_str)
-                    return expr_str
+                    
+                    # Sort parameter values by length (descending) to avoid partial replacements
+                    sorted_params = sorted(mapping.items(), key=lambda x: len(x[0]), reverse=True)
+                    
+                    # Create a temporary expression for processing
+                    temp_expr = expr_str
+                    replacements = []
+                    
+                    # First pass: identify all replacements needed
+                    for val, name in sorted_params:
+                        # Use word boundaries and context to ensure accurate replacement
+                        # Look for the value as a complete parameter (not part of another string)
+                        pattern = r'\b' + re.escape(val) + r'\b'
+                        matches = list(re.finditer(pattern, temp_expr))
+                        
+                        for match in matches:
+                            replacements.append((match.start(), match.end(), val, name))
+                    
+                    # Sort replacements by position (reverse order to maintain indices)
+                    replacements.sort(key=lambda x: x[0], reverse=True)
+                    
+                    # Apply replacements
+                    result = temp_expr
+                    for start, end, val, name in replacements:
+                        result = result[:start] + name + result[end:]
+                    
+                    return result
                 
                 # Process preconditions
                 processed_preconditions = []
                 for precond in solution['Precond']:
-                    processed_preconditions.append(replace_params(precond, param_mapping))
+                    processed_preconditions.append(replace_params(precond, param_mapping, param_values))
                 
                 # Process negative preconditions
                 processed_neg_preconditions = []
                 for neg_precond in solution['NegPrecond']:
-                    processed_neg_preconditions.append(replace_params(neg_precond, param_mapping))
+                    processed_neg_preconditions.append(replace_params(neg_precond, param_mapping, param_values))
                 
                 # Process resource preconditions
                 processed_resource_preconditions = []
                 for res_precond in solution['ResourcePrecond']:
-                    processed_resource_preconditions.append(replace_params(res_precond, param_mapping))
+                    processed_resource_preconditions.append(replace_params(res_precond, param_mapping, param_values))
                 
-                # Process type constraints
+                # CRITICAL FIX: Process type constraints more carefully
                 processed_type_constraints = []
+                type_constraint_dict = {}  # Store the actual type mapping
+                
                 for constraint in solution['TypeConstraints']:
-                    processed_type_constraints.append(replace_params(constraint, param_mapping))
+                    constraint_str = str(constraint)
+                    
+                    # Parse the constraint to extract type and parameters
+                    constraint_match = re.match(r'([a-zA-Z_][a-zA-Z0-9_]*)\((.*?)\)', constraint_str)
+                    if constraint_match:
+                        type_name = constraint_match.group(1)
+                        params_in_constraint = constraint_match.group(2)
+                        
+                        # Split parameters in the constraint
+                        constraint_params = []
+                        current = ""
+                        paren_count = 0
+                        
+                        for char in params_in_constraint:
+                            if char == ',' and paren_count == 0:
+                                constraint_params.append(current.strip())
+                                current = ""
+                            else:
+                                if char == '(':
+                                    paren_count += 1
+                                elif char == ')':
+                                    paren_count -= 1
+                                current += char
+                        
+                        if current:
+                            constraint_params.append(current.strip())
+                        
+                        # Map each parameter in the constraint to its Param name
+                        for cp in constraint_params:
+                            cp_str = str(cp).strip()
+                            if cp_str in param_mapping:
+                                param_name = param_mapping[cp_str]
+                                type_constraint_dict[param_name] = type_name
+                        
+                        # Create the processed constraint string
+                        processed_params = []
+                        for cp in constraint_params:
+                            cp_str = str(cp).strip()
+                            if cp_str in param_mapping:
+                                processed_params.append(param_mapping[cp_str])
+                            else:
+                                processed_params.append(cp_str)
+                        
+                        if processed_params:
+                            processed_constraint = f"{type_name}({', '.join(processed_params)})"
+                            processed_type_constraints.append(processed_constraint)
                 
                 # Process effects
                 processed_effects = []
@@ -196,7 +313,7 @@ def extract_prolog_knowledge(prolog_file):
                         match = re.search(r'add\((.*?)\)', effect_str)
                         if match:
                             inner = match.group(1)
-                            replaced_inner = replace_params(inner, param_mapping)
+                            replaced_inner = replace_params(inner, param_mapping, param_values)
                             effect_str = effect_str.replace(match.group(0), f"add({replaced_inner})")
                     
                     # Handle del effects
@@ -204,7 +321,7 @@ def extract_prolog_knowledge(prolog_file):
                         match = re.search(r'del\((.*?)\)', effect_str)
                         if match:
                             inner = match.group(1)
-                            replaced_inner = replace_params(inner, param_mapping)
+                            replaced_inner = replace_params(inner, param_mapping, param_values)
                             effect_str = effect_str.replace(match.group(0), f"del({replaced_inner})")
                     
                     processed_effects.append(effect_str)
@@ -218,13 +335,17 @@ def extract_prolog_knowledge(prolog_file):
                     'neg_preconditions': processed_neg_preconditions,
                     'resource_preconditions': processed_resource_preconditions,
                     'type_constraints': processed_type_constraints,
-                    'effects': processed_effects
+                    'effects': processed_effects,
+                    # Add the actual type mapping for debugging
+                    '_type_constraint_dict': type_constraint_dict
                 }
                 actions.append(action_info)
             else:
                 print(f"Warning: Invalid action head format")
     except Exception as e:
         print(f"Warning: Could not extract actions directly: {e}")
+        import traceback
+        traceback.print_exc()
 
     for action in actions:
         for constraint in action['type_constraints']:
@@ -277,9 +398,11 @@ def extract_prolog_knowledge(prolog_file):
     
     knowledge['fluent_names'] = list(fluent_names)
     
+    knowledge = improve_type_constraints_inference(knowledge)
+    
     extraction_time = time.time() - start_time
     print(f"Extraction completed in {extraction_time:.4f} seconds")
-    
+        
     return knowledge
 
 
@@ -293,7 +416,6 @@ def analyze_fluent_signatures(knowledge):
         for instance in instances:
             object_to_type[str(instance)] = type_name
     
-    # NO HARD-CODED ASSUMPTIONS - analyze everything dynamically
     
     # Collect fluent usage information with action context and scores
     fluent_usage = {}  # fluent_name -> list of (param_types, action_score, action_name)
@@ -309,10 +431,14 @@ def analyze_fluent_signatures(knowledge):
         params = [p.strip() for p in params_str.split(',')]
         
         param_types = []
-        action_type_constraints = action.get('type_constraints', [])
         
-        # Create parameter-to-type mapping from action constraints
+        # Use the _type_constraint_dict if available (from our fixed extractor)
+        type_constraint_dict = action.get('_type_constraint_dict', {})
+        
+        # Also parse the string-based constraints as fallback
+        action_type_constraints = action.get('type_constraints', [])
         param_to_type = {}
+        
         for constraint in action_type_constraints:
             constraint_match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
             if constraint_match:
@@ -329,8 +455,11 @@ def analyze_fluent_signatures(knowledge):
                     param_to_type[param_names.strip()] = type_name
         
         for param in params:
-            # Try to get type from action constraints first
-            if param in param_to_type:
+            # First try the direct type constraint dict
+            if param in type_constraint_dict:
+                param_types.append(type_constraint_dict[param])
+            # Then try the parsed constraints
+            elif param in param_to_type:
                 param_types.append(param_to_type[param])
             # Check if parameter is a known object from extracted types
             elif param in object_to_type:
@@ -451,23 +580,30 @@ def _resolve_unknowns_across_actions(fluent_signatures, knowledge):
     param_usage_patterns = {}  # param_name -> {fluent_name: {position: type}}
     
     for action in knowledge['actions']:
-        type_constraints = action.get('type_constraints', [])
+        # Use the _type_constraint_dict if available
+        type_constraint_dict = action.get('_type_constraint_dict', {})
         
-        # Build param-to-type mapping for this action
-        param_to_type = {}
-        for constraint in type_constraints:
-            constraint_match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
-            if constraint_match:
-                type_name = constraint_match.group(1)
-                param_names = constraint_match.group(2)
-                
-                if ',' in param_names:
-                    for param in param_names.split(','):
-                        param = param.strip()
-                        if param:
-                            param_to_type[param] = type_name
-                else:
-                    param_to_type[param_names.strip()] = type_name
+        # Fallback to parsing string constraints
+        if not type_constraint_dict:
+            type_constraints = action.get('type_constraints', [])
+            
+            # Build param-to-type mapping for this action
+            param_to_type = {}
+            for constraint in type_constraints:
+                constraint_match = re.match(r'([a-zA-Z_]+)\((.*?)\)', constraint)
+                if constraint_match:
+                    type_name = constraint_match.group(1)
+                    param_names = constraint_match.group(2)
+                    
+                    if ',' in param_names:
+                        for param in param_names.split(','):
+                            param = param.strip()
+                            if param:
+                                param_to_type[param] = type_name
+                    else:
+                        param_to_type[param_names.strip()] = type_name
+        else:
+            param_to_type = type_constraint_dict
         
         # Analyze all fluent usages in this action
         all_fluent_uses = []
@@ -568,6 +704,10 @@ def print_knowledge_summary(knowledge, fluent_signatures):
                 params.append(param_name)
         
         print(f"    Parameters: {', '.join(params)}")
+        
+        # Print type constraints from _type_constraint_dict if available
+        if '_type_constraint_dict' in action:
+            print(f"    Type mapping: {action['_type_constraint_dict']}")
         
         # Replace Prolog variables with the parameter names in preconditions and effects
         param_mapping = {}

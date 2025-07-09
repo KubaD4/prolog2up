@@ -65,6 +65,14 @@ def main():
         
         if args.verbose:
             print(f"  - Analyzed signatures for {len(fluent_signatures)} fluents")
+            print("\n  === ACTION TYPE CONSTRAINTS DEBUG ===")
+            for action in knowledge['actions']:
+                print(f"\n  Action: {action['name']}")
+                print(f"    Parameters: {action['parameters']}")
+                print(f"    Param values: {action.get('param_values', [])}")
+                print(f"    Type constraints: {action.get('type_constraints', [])}")
+                print(f"    Type dict: {action.get('_type_constraint_dict', {})}")
+            print("  === END DEBUG ===\n")
             print_knowledge_summary(knowledge, fluent_signatures)
         print(f"  ⏱️  Signature analysis completed in {step2_time:.3f} seconds")
         

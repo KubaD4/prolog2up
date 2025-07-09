@@ -91,6 +91,7 @@ def infer_fluent_signature_from_usage(knowledge, fluent_name):
     
     return result
 
+    # TODO non serve pos
 def _infer_type_from_structure(arg, knowledge):
     """Inferisce il tipo di un argomento dalla sua struttura, senza assunzioni"""
     
@@ -103,7 +104,6 @@ def _infer_type_from_structure(arg, knowledge):
     if arg.isdigit() or (arg.replace('-', '').replace('.', '').isdigit()):
         return "pos"
     
-    # Se non riusciamo a determinarlo
     return "Unknown"
 
 
@@ -125,22 +125,22 @@ def _infer_wildcard_type_from_context(fluent_name, position, action, knowledge):
         if position < len(sig) and sig[position] != "Unknown":
             return sig[position]
     
-    # Analizza pattern dai types estratti
-    available_types = list(knowledge["types"].keys())
+    # # Analizza pattern dai types estratti
+    # available_types = list(knowledge["types"].keys())
     
-    # Se abbiamo tipi disponibili, usa euristica basata sulla posizione
-    if available_types:
-        # Prima posizione spesso è agente o oggetto principale
-        if position == 0 and "agent" in available_types:
-            return "agent"
-        # Posizioni numeriche spesso sono posizioni
-        elif position >= 2 and "pos" in [t.lower() for t in available_types]:
-            return "pos"
-        # Altrimenti usa il tipo più comune
-        else:
-            # Trova il tipo con più istanze
-            type_with_most_instances = max(knowledge["types"].items(), key=lambda x: len(x[1]))
-            return type_with_most_instances[0]
+    # # Se abbiamo tipi disponibili, usa euristica basata sulla posizione
+    # if available_types:
+    #     # Prima posizione spesso è agente o oggetto principale
+    #     if position == 0 and "agent" in available_types:
+    #         return "agent"
+    #     # Posizioni numeriche spesso sono posizioni
+    #     elif position >= 2 and "pos" in [t.lower() for t in available_types]:
+    #         return "pos"
+    #     # Altrimenti usa il tipo più comune
+    #     else:
+    #         # Trova il tipo con più istanze
+    #         type_with_most_instances = max(knowledge["types"].items(), key=lambda x: len(x[1]))
+    #         return type_with_most_instances[0]
     
     return "object"  # Fallback finale
 
@@ -197,9 +197,94 @@ def generate_up_code_negative_preconditions_section(knowledge, name, act):
     
     return lines
 
+def convert_numbers_to_strings(knowledge):
+    """
+    Converte tutti i numeri in stringhe valide per UP.
+    Es: 1 -> x1, 2 -> x2, 10 -> x10, etc.
+    """
+    
+    def convert_number_if_needed(value):
+        """Converte un valore se è numerico"""
+        if isinstance(value, str) and value.isdigit():
+            return f"x{value}"
+        elif isinstance(value, (int, float)):
+            return f"x{int(value)}"
+        return value
+    
+    def convert_predicate_args(pred):
+        """Converte gli argomenti di un predicato"""
+        converted_pred = pred.copy()
+        converted_pred["args"] = [convert_number_if_needed(arg) for arg in pred["args"]]
+        return converted_pred
+    
+    def convert_action_args(action):
+        """Converte gli argomenti nelle azioni"""
+        converted_action = action.copy()
+        
+        for section in ["preconditions", "neg_preconditions", "add_effects", "del_effects"]:
+            if section in converted_action:
+                converted_action[section] = [
+                    convert_predicate_args(pred) for pred in converted_action[section]
+                ]
+        
+        return converted_action
+    
+    # Converti init_state
+    knowledge["init_state"] = [convert_predicate_args(pred) for pred in knowledge["init_state"]]
+    
+    # Converti goal_state  
+    knowledge["goal_state"] = [convert_predicate_args(pred) for pred in knowledge["goal_state"]]
+    
+    # Converti azioni
+    knowledge["actions"] = [convert_action_args(action) for action in knowledge["actions"]]
+    
+    return knowledge
+
+
+def extract_string_objects_from_knowledge(knowledge):
+    """
+    Estrae tutti gli oggetti stringa (inclusi quelli convertiti da numeri)
+    dal knowledge per creare gli oggetti UP necessari.
+    ESCLUDI oggetti già definiti nei types.
+    """
+    string_objects = set()
+    
+    # Prima raccogli tutti gli oggetti già definiti nei types
+    already_defined_objects = set()
+    for type_name, instances in knowledge["types"].items():
+        for instance in instances:
+            if isinstance(instance, str):
+                already_defined_objects.add(instance)
+    
+    # Raccogli da init_state e goal_state
+    for state_section in [knowledge["init_state"], knowledge["goal_state"]]:
+        for pred in state_section:
+            for arg in pred["args"]:
+                if (isinstance(arg, str) and 
+                    not arg.startswith("Param") and 
+                    arg not in already_defined_objects):  # ESCLUDI oggetti già definiti
+                    string_objects.add(arg)
+    
+    # Raccogli dalle azioni
+    for action in knowledge["actions"]:
+        for section in ["preconditions", "neg_preconditions", "add_effects", "del_effects"]:
+            for pred in action.get(section, []):
+                for arg in pred["args"]:
+                    if (isinstance(arg, str) and 
+                        not arg.startswith("Param") and 
+                        not arg.startswith("_") and
+                        arg not in already_defined_objects):  # ESCLUDI oggetti già definiti
+                        string_objects.add(arg)
+    
+    return sorted(string_objects)
+
 
 def generate_up_code(knowledge, out_dir):
-    """Generate UP code with proper output directory handling and improved wildcard management"""
+    """Generate UP code with simple number-to-string conversion - FIXED VERSION"""
+    
+    # Prima di tutto, converti tutti i numeri in stringhe
+    knowledge = convert_numbers_to_strings(knowledge)
+    
     lines = []
     wp = lines.append
 
@@ -212,9 +297,7 @@ def generate_up_code(knowledge, out_dir):
     wp("from unified_planning.shortcuts import *")
     wp("from unified_planning.model import Variable, InstantaneousAction, Problem")
     wp("from unified_planning.io import PDDLWriter")
-    wp("from unified_planning.model.operators import OperatorKind")
     wp("from unified_planning.shortcuts import *")
-    wp("up.shortcuts.get_environment().credits_stream = None")
     wp("")
 
     # 2) Tipi (UserType)
@@ -229,6 +312,7 @@ def generate_up_code(knowledge, out_dir):
 
     # Rimuovi "Unknown" dai tipi e aggiungi tipi mancanti comuni
     unique_types.discard("Unknown")
+    # TOD non serve pos
     unique_types.add("pos")  # Assicurati che 'pos' sia incluso
     unique_types_list = list(unique_types)
 
@@ -270,65 +354,134 @@ def generate_up_code(knowledge, out_dir):
         wp(f"problem.add_fluent({f}, default_initial_value=False)")
     wp("")
 
-    # 5) Estrai e crea oggetti per le posizioni
-    coordinates = extract_position_coordinates(knowledge)
-    pos_objects, pos_creation_lines = create_position_objects(coordinates)
+    # 5) Oggetti - SEZIONE CORRETTA
+    all_objects_to_create = []
     
-    print(f"Found coordinates: {coordinates}")
-    print(f"Created position objects: {pos_objects}")
-
-    # 6) Oggetti (inclusi quelli delle posizioni)
+    # Prima: oggetti dai types originali (con i loro tipi corretti)
     for t, instances in knowledge["types"].items():
         for inst in instances:
-            # Evita oggetti con nomi problematici
             if isinstance(inst, str) and not any(char in str(inst) for char in ['(', ')', '_', ' ']):
                 wp(f"{inst} = Object('{inst}', {t.capitalize()})")
+                all_objects_to_create.append(inst)
     
-    # Aggiungi oggetti posizione
-    for line in pos_creation_lines:
-        wp(line)
+    # Poi: SOLO gli oggetti stringa nuovi (esclusi quelli già definiti)
+    string_objects = extract_string_objects_from_knowledge(knowledge)
+    for obj in string_objects:
+        # TODO riadatta in modo da assegnare tipo ad x1 x2 etc come con tutti gli altri senza forzatura
+        # Inferisci il tipo dell'oggetto
+        if obj.startswith("x") and obj[1:].isdigit():
+            obj_type = "Pos"
+        else:
+            # Usa un tipo generico per oggetti non riconosciuti
+            obj_type = "Object"  # Questo dovrebbe essere sostituito con un tipo valido
+            # Se non abbiamo un tipo Object definito, usa il primo tipo disponibile come fallback
+            if "Object" not in [t.capitalize() for t in knowledge["types"].keys()] + unique_types_list:
+                available_types = [t.capitalize() for t in knowledge["types"].keys()] + unique_types_list
+                if available_types:
+                    obj_type = available_types[0]  # Usa il primo tipo disponibile
+        
+        wp(f"{obj} = Object('{obj}', {obj_type})")
+        all_objects_to_create.append(obj)
     
+    # Lista oggetti SENZA duplicazioni
     wp("problem.add_objects([")
-    for t, instances in knowledge["types"].items():
-        for inst in instances:
-            if isinstance(inst, str) and not any(char in str(inst) for char in ['(', ')', '_', ' ']):
-                wp(f"    {inst},")
-    
-    # Aggiungi oggetti posizione alla lista
-    for coord in coordinates:
-        wp(f"    pos_{coord},")
-    
+    for obj in all_objects_to_create:
+        wp(f"    {obj},")
     wp("])")
     wp("")
 
-    # 7) Stato iniziale con sostituzione coordinate
+    # 6) Stato iniziale (numeri già convertiti)
     for pred in knowledge["init_state"]:
-        # Sostituisci coordinate con oggetti Pos se necessario
-        updated_pred = replace_coordinates_in_predicate(pred, pos_objects)
-        name = updated_pred["name"]
-        args = ", ".join(updated_pred["args"])
+        name = pred["name"]
+        args = ", ".join(pred["args"])
         wp(f"problem.set_initial_value({name}({args}), True)")
     wp("")
 
-    # 8) Goal state con sostituzione coordinate
+    # 7) Goal state (numeri già convertiti)
     for pred in knowledge["goal_state"]:
-        # Sostituisci coordinate con oggetti Pos se necessario
-        updated_pred = replace_coordinates_in_predicate(pred, pos_objects)
-        name = updated_pred["name"]
-        args = ", ".join(updated_pred["args"])
+        name = pred["name"]
+        args = ", ".join(pred["args"])
         wp(f"problem.add_goal({name}({args}))")
     wp("")
 
-    # 9) Azioni (resta invariato)
+    # 8) Azioni (numeri già convertiti)
     for act in knowledge["actions"]:
         name = act["name"]
         params = act["parameters"]
         types = act["type_constraints"]
         
+        # DEBUG: Validate type constraints before generating action
+        print(f"\nDEBUG: Processing action {name}")
+        print(f"  Parameters: {params}")
+        print(f"  Type constraints: {types}")
+        
+        # Check if all parameters have type constraints
+        missing_types = []
+        for p in params:
+            if p not in types or types[p] == "Unknown":
+                missing_types.append(p)
+                print(f"  WARNING: Parameter {p} has no type constraint or Unknown type!")
+        
+        # If there are missing types, try to infer them from fluent usage
+        if missing_types:
+            print(f"  Attempting to infer types for: {missing_types}")
+            for missing_param in missing_types:
+                # Look for this parameter in preconditions and effects
+                inferred_type = None
+                
+                # Check in preconditions
+                for pre in act.get("preconditions", []):
+                    if missing_param in pre["args"]:
+                        idx = pre["args"].index(missing_param)
+                        fluent_name = pre["name"]
+                        if fluent_name in knowledge["fluent_signatures"]:
+                            sig = knowledge["fluent_signatures"][fluent_name]
+                            if idx < len(sig) and sig[idx] != "Unknown":
+                                inferred_type = sig[idx]
+                                break
+                
+                # Check in add effects if not found
+                if not inferred_type:
+                    for eff in act.get("add_effects", []):
+                        if missing_param in eff["args"]:
+                            idx = eff["args"].index(missing_param)
+                            fluent_name = eff["name"]
+                            if fluent_name in knowledge["fluent_signatures"]:
+                                sig = knowledge["fluent_signatures"][fluent_name]
+                                if idx < len(sig) and sig[idx] != "Unknown":
+                                    inferred_type = sig[idx]
+                                    break
+                
+                # Check in del effects if still not found
+                if not inferred_type:
+                    for eff in act.get("del_effects", []):
+                        if missing_param in eff["args"]:
+                            idx = eff["args"].index(missing_param)
+                            fluent_name = eff["name"]
+                            if fluent_name in knowledge["fluent_signatures"]:
+                                sig = knowledge["fluent_signatures"][fluent_name]
+                                if idx < len(sig) and sig[idx] != "Unknown":
+                                    inferred_type = sig[idx]
+                                    break
+                
+                if inferred_type:
+                    print(f"    Inferred type for {missing_param}: {inferred_type}")
+                    types[missing_param] = inferred_type
+                else:
+                    print(f"    Could not infer type for {missing_param}, using 'object'")
+                    types[missing_param] = "object"
+        
         wp(f"# --- action {name}")
         
-        # Firma InstantaneousAction
-        sig = ", ".join(f"{p}={types[p].capitalize()}" for p in params)
+        # Firma InstantaneousAction - ensure all parameters have valid types
+        sig_parts = []
+        for p in params:
+            param_type = types.get(p, 'object')
+            if param_type == "Unknown":
+                param_type = "object"
+            sig_parts.append(f"{p}={param_type.capitalize()}")
+        
+        sig = ", ".join(sig_parts)
         wp(f"{name} = InstantaneousAction('{name}', {sig})")
         
         # Binding parametri
@@ -346,6 +499,15 @@ def generate_up_code(knowledge, out_dir):
         for line in neg_precond_lines:
             wp(line)
         
+        # Add Not(Equals(...)) constraints for different block parameters
+        # Detect which parameters are blocks and add inequality constraints
+        block_params = [p for p in params if types.get(p) == "block"]
+        if len(block_params) > 1:
+            # Add inequality constraints for all pairs of block parameters
+            for i in range(len(block_params)):
+                for j in range(i + 1, len(block_params)):
+                    wp(f"{name}.add_precondition(Not(Equals({block_params[i]}, {block_params[j]})))")
+        
         # Effetti delete
         for eff in act.get("del_effects", []):
             ename = eff["name"]
@@ -362,13 +524,14 @@ def generate_up_code(knowledge, out_dir):
         wp(f"problem.add_action({name})")
         wp("")
 
-    # 10) Export PDDL
+    # 9) Export PDDL
     wp("writer = PDDLWriter(problem)")
     wp("writer.write_domain('generated_domain.pddl')")
     wp("writer.write_problem('generated_problem.pddl')")
     wp("print('Generated PDDL files in current directory')")
 
     return "\n".join(lines)
+
 
 def extract_position_coordinates(knowledge):
     """
@@ -378,13 +541,13 @@ def extract_position_coordinates(knowledge):
     coordinates = set()
     
     # Analizza init_state e goal_state per trovare coordinate in fluent 'at'
-    for state_section in [knowledge["init_state"], knowledge["goal_state"]]:
-        for pred in state_section:
-            if pred["name"] == "at" and len(pred["args"]) >= 3:
-                # Estrai le coordinate (assumendo che siano nelle posizioni 1 e 2)
-                for coord in pred["args"][1:]:  # Salta il primo argomento (object)
-                    if coord.isdigit() or (coord.replace('-', '').replace('.', '').isdigit()):
-                        coordinates.add(coord)
+    # for state_section in [knowledge["init_state"], knowledge["goal_state"]]:
+    #     for pred in state_section:
+    #         if pred["name"] == "at" and len(pred["args"]) >= 3:
+    #             # Estrai le coordinate (assumendo che siano nelle posizioni 1 e 2)
+    #             for coord in pred["args"][1:]:  # Salta il primo argomento (object)
+    #                 if coord.isdigit() or (coord.replace('-', '').replace('.', '').isdigit()):
+    #                     coordinates.add(coord)
     
     return sorted(coordinates, key=lambda x: int(x))
 
@@ -404,24 +567,25 @@ def create_position_objects(coordinates):
     return pos_objects, pos_creation_lines
 
 
+# TODO rimuovi, non serve
 def replace_coordinates_in_predicate(pred, pos_objects):
     """
     Sostituisce le coordinate numeriche con oggetti Pos in un predicato
     """
-    if pred["name"] == "at" and len(pred["args"]) >= 3:
-        # Sostituisci solo le coordinate (posizioni 1 e successive)
-        new_args = [pred["args"][0]]  # Mantieni il primo argomento (object)
+    # if pred["name"] == "at" and len(pred["args"]) >= 3:
+    #     # Sostituisci solo le coordinate (posizioni 1 e successive)
+    #     new_args = [pred["args"][0]]  # Mantieni il primo argomento (object)
         
-        for coord in pred["args"][1:]:
-            if coord in pos_objects:
-                new_args.append(pos_objects[coord])
-            else:
-                new_args.append(coord)  # Mantieni come era se non è una coordinata
+    #     for coord in pred["args"][1:]:
+    #         if coord in pos_objects:
+    #             new_args.append(pos_objects[coord])
+    #         else:
+    #             new_args.append(coord)  # Mantieni come era se non è una coordinata
         
-        return {
-            "name": pred["name"],
-            "args": new_args
-        }
+    #     return {
+    #         "name": pred["name"],
+    #         "args": new_args
+    #     }
     
     return pred 
 

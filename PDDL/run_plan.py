@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3  # (se lasciata) 
 import subprocess
 import sys
 import time
@@ -142,11 +142,169 @@ class FastDownwardRunner(PlannerRunner):
                 except Exception as e:
                     if self.verbose:
                         print(f"Could not remove old plan file {plan_file}: {e}")
+                        
+    def _validate_pddl_file(self, filepath, file_type):
+        """Validate PDDL file and extract statistics"""
+        try:
+            with open(filepath, 'r') as f:
+                content = f.read()
+            
+            stats = {}
+            errors = []
+            
+            if file_type == "domain":
+                # Check domain structure
+                if not re.search(r'\(define\s*\(\s*domain', content, re.IGNORECASE):
+                    errors.append("Missing domain definition")
+                
+                # Count predicates
+                predicates = re.findall(r'\(\s*(\w+)(?:\s+\?[\w\s\-]+)*\s*\)', 
+                                    re.search(r':predicates\s*\((.*?)\)\s*\(:action|\):functions|\):types|$', content, re.DOTALL).group(1) if re.search(r':predicates\s*\((.*?)\)\s*\(:action|\):functions|\):types|$', content, re.DOTALL) else "")
+                stats['predicates_count'] = len(predicates)
+                
+                # Count actions
+                actions = re.findall(r':action\s+(\w+)', content, re.IGNORECASE)
+                stats['actions_count'] = len(actions)
+                stats['actions'] = actions
+                
+                # Check for high arity predicates
+                high_arity_predicates = []
+                predicate_section = re.search(r':predicates\s*\((.*?)\)\s*(?:\(:action|\):functions|\):types|$)', content, re.DOTALL)
+                if predicate_section:
+                    pred_definitions = re.findall(r'\(\s*(\w+)([^)]*)\)', predicate_section.group(1))
+                    for pred_name, params in pred_definitions:
+                        param_count = params.count('?') if params else 0
+                        if param_count > 5:
+                            high_arity_predicates.append(f"{pred_name}({param_count} params)")
+                
+                stats['high_arity_predicates'] = high_arity_predicates
+                if high_arity_predicates:
+                    errors.append(f"High arity predicates detected: {high_arity_predicates}. Some planners have arity limits.")
+                
+            elif file_type == "problem":
+                # Check problem structure
+                if not re.search(r'\(define\s*\(\s*problem', content, re.IGNORECASE):
+                    errors.append("Missing problem definition")
+                
+                # Count objects
+                objects_match = re.search(r':objects\s+(.*?)(?:\):init|\):goal|$)', content, re.DOTALL)
+                if objects_match:
+                    objects = re.findall(r'(\w+)', objects_match.group(1))
+                    stats['objects_count'] = len(objects)
+                else:
+                    stats['objects_count'] = 0
+                
+                # Count initial facts
+                init_match = re.search(r':init\s+(.*?)(?:\):goal|$)', content, re.DOTALL)
+                if init_match:
+                    init_facts = re.findall(r'\([^)]+\)', init_match.group(1))
+                    stats['init_facts_count'] = len(init_facts)
+                else:
+                    stats['init_facts_count'] = 0
+                
+                # Count goal facts
+                goal_match = re.search(r':goal\s+(.*?)(?:\)$|$)', content, re.DOTALL)
+                if goal_match:
+                    goal_facts = re.findall(r'\([^)]+\)', goal_match.group(1))
+                    stats['goal_facts_count'] = len(goal_facts)
+                else:
+                    stats['goal_facts_count'] = 0
+            
+            return {
+                'valid': len(errors) == 0,
+                'errors': errors,
+                'stats': stats,
+                'error': '; '.join(errors) if errors else None
+            }
+            
+        except Exception as e:
+            return {
+                'valid': False,
+                'errors': [f"File reading error: {str(e)}"],
+                'stats': {},
+                'error': str(e)
+            }
+
+
+    def _analyze_failure(self, output, return_code, solution_found):
+        """Analyze failure reasons and provide suggestions"""
+        error_type = "unknown"
+        error_message = "Planning failed"
+        suggestions = []
+        
+        if "Traceback" in output or "Exception" in output:
+            error_type = "python_error"
+            error_message = "Python exception in planner"
+            suggestions = ["Check PDDL syntax", "Verify Fast Downward installation"]
+            
+        elif "parse error" in output.lower() or "parsing" in output.lower():
+            error_type = "parse_error"
+            error_message = "PDDL parsing error"
+            suggestions = ["Check PDDL syntax", "Validate domain and problem files", "Check for typos in predicates/actions"]
+            
+        elif "unsupported" in output.lower():
+            error_type = "unsupported_feature"
+            error_message = "Unsupported PDDL feature"
+            suggestions = ["Remove unsupported PDDL features", "Try a different planner", "Simplify the domain"]
+            
+        elif "out of memory" in output.lower() or "memory" in output.lower():
+            error_type = "memory_error"
+            error_message = "Out of memory"
+            suggestions = ["Reduce problem size", "Increase system memory", "Use memory-efficient search algorithm"]
+            
+        elif "no solution" in output.lower() or "search space exhausted" in output.lower():
+            error_type = "no_solution"
+            error_message = "No solution found (search space exhausted)"
+            suggestions = ["Verify goal is reachable", "Check initial state", "Try different search algorithm", "Increase search limits"]
+            
+        elif return_code != 0 and not solution_found:
+            error_type = "planner_error"
+            error_message = f"Fast Downward exited with code {return_code}"
+            
+            # Extract more specific error from output
+            error_lines = [line.strip() for line in output.split('\n') 
+                        if any(keyword in line.lower() for keyword in ['error', 'failed', 'abort', 'exception', 'invalid'])]
+            if error_lines:
+                error_message += f": {error_lines[0]}"
+            
+            suggestions = ["Check Fast Downward installation", "Verify PDDL files", "Try different search algorithm"]
+        
+        # Check for specific arity issues
+        if "arity" in output.lower() or any(str(i) in output for i in range(6, 20)):
+            error_type = "arity_error"
+            error_message = "Possible arity limit exceeded"
+            suggestions = ["Reduce predicate arity", "Combine coordinates into single objects", "Use different planner"]
+        
+        return {
+            'type': error_type,
+            'error': error_message,
+            'suggestions': suggestions
+        }
+
+    
     
     def run(self, search):
-        """Run Fast Downward and return results"""
+        """Run Fast Downward and return results with detailed diagnostics"""
         # Clean up any existing plan files
         self._clean_up_plan_files()
+        
+        # Validate PDDL files first
+        domain_validation = self._validate_pddl_file(self.domain_file, "domain")
+        problem_validation = self._validate_pddl_file(self.problem_file, "problem")
+        
+        if not domain_validation["valid"] or not problem_validation["valid"]:
+            return {
+                'planner': 'fast_downward',
+                'search': search,
+                'success': False,
+                'error': f"PDDL Validation Failed: {domain_validation.get('error', '')} {problem_validation.get('error', '')}",
+                'domain_stats': domain_validation.get('stats', {}),
+                'problem_stats': problem_validation.get('stats', {}),
+                'validation_details': {
+                    'domain': domain_validation,
+                    'problem': problem_validation
+                }
+            }
         
         # Map search algorithm name to Fast Downward search string
         search_command = self._map_search_name(search)
@@ -158,6 +316,13 @@ class FastDownwardRunner(PlannerRunner):
         process_start_time = time.time()
         
         try:
+            if self.verbose:
+                print(f"Executing: {' '.join(cmd)}")
+                print(f"Domain file: {self.domain_file}")
+                print(f"Problem file: {self.problem_file}")
+                print(f"Search algorithm: {search} -> {search_command}")
+                print(f"Timeout: {self.timeout} seconds")
+            
             # Run Fast Downward
             result = subprocess.run(
                 cmd,
@@ -170,7 +335,12 @@ class FastDownwardRunner(PlannerRunner):
             # Get the output
             output = result.stdout + result.stderr
             
-            # Check if solution was found - either explicit success message or sas_plan file exists
+            if self.verbose:
+                print(f"\n=== PLANNER OUTPUT ===")
+                print(output)
+                print(f"=== END OUTPUT ===\n")
+            
+            # Check if solution was found
             solution_found = "Solution found" in output or os.path.exists("sas_plan")
             
             # Extract plan
@@ -183,27 +353,8 @@ class FastDownwardRunner(PlannerRunner):
             stats['process_time'] = process_end_time - process_start_time
             stats['wall_time'] = process_end_time - process_start_time
             
-            # If we have a plan but no explicit success message, confirm it's valid
-            if plan and not solution_found:
-                solution_found = True
-            
-            # Determine if there was an error
-            error = None
-            if result.returncode != 0 and not solution_found:
-                # Extract meaningful error message
-                error_lines = [line for line in output.split('\n') if "error" in line.lower() or "exception" in line.lower()]
-                if error_lines:
-                    error = error_lines[0]
-                else:
-                    # Look for other common error messages
-                    if "unknown option" in output.lower():
-                        error = "Unknown command-line option"
-                    elif "could not find domain file" in output.lower():
-                        error = "Could not find domain file"
-                    elif "parser error" in output.lower():
-                        error = "Parser error in PDDL file"
-                    else:
-                        error = f"Fast Downward exited with code {result.returncode}"
+            # Enhanced error analysis
+            error_analysis = self._analyze_failure(output, result.returncode, solution_found)
             
             return {
                 'planner': 'fast_downward',
@@ -213,7 +364,12 @@ class FastDownwardRunner(PlannerRunner):
                 'stats': stats,
                 'output': output,
                 'returncode': result.returncode,
-                'error': error
+                'error': error_analysis['error'],
+                'error_type': error_analysis['type'],
+                'suggestions': error_analysis['suggestions'],
+                'domain_stats': domain_validation.get('stats', {}),
+                'problem_stats': problem_validation.get('stats', {}),
+                'command_used': ' '.join(cmd)
             }
         except subprocess.TimeoutExpired:
             return {
@@ -221,7 +377,11 @@ class FastDownwardRunner(PlannerRunner):
                 'search': search,
                 'success': False,
                 'error': f'Timeout after {self.timeout} seconds',
-                'stats': {'wall_time': self.timeout}
+                'error_type': 'timeout',
+                'suggestions': ['Try increasing timeout', 'Use a simpler search algorithm', 'Simplify the problem'],
+                'stats': {'wall_time': self.timeout},
+                'domain_stats': domain_validation.get('stats', {}),
+                'problem_stats': problem_validation.get('stats', {})
             }
         except Exception as e:
             return {
@@ -229,6 +389,7 @@ class FastDownwardRunner(PlannerRunner):
                 'search': search,
                 'success': False,
                 'error': str(e),
+                'error_type': 'execution_error',
                 'stats': {'wall_time': time.time() - process_start_time},
                 'exception': traceback.format_exc() if self.verbose else None
             }

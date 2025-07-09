@@ -305,11 +305,18 @@ def _propagate_types_across_related_actions(acts, fluent_sigs):
                                     known_type = next(iter(param_info_by_position[pos].values()))
                                     tdict[arg] = known_type
 
-def parse_type_constraints(type_constraints_list):
+def parse_type_constraints(type_constraints_list, type_constraint_dict=None):
     """
-    Convert type constraints handling only single parameters
+    Convert type constraints handling both string constraints and direct type mapping.
+    Now also accepts an optional type_constraint_dict for more accurate mapping.
     """
     type_dict = {}
+    
+    # If we have a direct type constraint dict (from improved extractor), use it first
+    if type_constraint_dict:
+        type_dict.update(type_constraint_dict)
+    
+    # Then parse string constraints as fallback/addition
     for constraint in type_constraints_list:
         match = re.match(r'([a-zA-Z_][a-zA-Z0-9_]*)\(([^)]+)\)', constraint.strip())
         if match:
@@ -320,7 +327,9 @@ def parse_type_constraints(type_constraints_list):
             for param in param_names.split(','):
                 param = param.strip()
                 if param and param.startswith('Param'):  # Ignora stringhe vuote e non-Param
-                    type_dict[param] = type_name
+                    # Only add if not already in type_dict (direct mapping takes precedence)
+                    if param not in type_dict:
+                        type_dict[param] = type_name
                 
     return type_dict
 
@@ -344,7 +353,10 @@ def knwoledge_to_json(knowledge):
         a = {
             "name": act["name"],
             "parameters": act.get("parameters", []),
-            "type_constraints": parse_type_constraints(act.get("type_constraints", [])),
+            "type_constraints": parse_type_constraints(
+                act.get("type_constraints", []), 
+                act.get("_type_constraint_dict", {})
+            ),
             "preconditions": [parse_predicate(p) for p in act.get("preconditions", [])],
             "neg_preconditions": [],
             "add_effects": [],
@@ -551,19 +563,18 @@ def resolve_fluent_signatures_from_actions(knowledge):
     """
     fluent_signatures = knowledge.get("fluent_signatures", {})
     
-    # Prima passata: raccogli signature SOLO da add_effects (più affidabili)
+    # Prima passata: raccogli signature SOLO da add_effects 
     fluent_signature_candidates = {}  # fluent_name -> [(signature, action_score, action_name)]
-    
+
     for action in knowledge["actions"]:
         type_constraints = action.get("type_constraints", {})
         action_score = len(type_constraints)  # Score basato su ricchezza di type info
         
-        # Analizza SOLO add_effects per signature autoritativa
+        # Analizza add_effects per signature autoritativa
         for add_eff in action.get("add_effects", []):
             fluent_name = add_eff["name"]
             args = add_eff["args"]
             
-            # Determina la signature per questo uso specifico
             signature = []
             valid_signature = True
             
@@ -571,11 +582,9 @@ def resolve_fluent_signatures_from_actions(knowledge):
                 if arg in type_constraints:
                     signature.append(type_constraints[arg])
                 elif arg.startswith("_"):
-                    # Wildcard - potremmo inferire, ma per ora salta questa signature
                     valid_signature = False
                     break
                 else:
-                    # Prova a inferire da costante
                     inferred_type = _infer_type_from_constant_value(arg, knowledge)
                     if inferred_type != "Unknown":
                         signature.append(inferred_type)
