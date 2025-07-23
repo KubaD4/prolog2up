@@ -36,7 +36,7 @@ def infer_fluent_signature_from_usage(knowledge, fluent_name):
                         elif arg.startswith("_"):
                             types.append("Unknown")
                         else:
-                            # Prova a inferire il tipo dalla struttura
+
                             inferred_type = _infer_type_from_structure(arg, knowledge)
                             types.append(inferred_type)
                             if inferred_type != "Unknown":
@@ -46,7 +46,7 @@ def infer_fluent_signature_from_usage(knowledge, fluent_name):
                         combined_score = (quality_score / len(types)) * action_score
                         candidates_with_scores.append((types, combined_score, action["name"]))
     
-    # Aggiungi anche analisi da init_state e goal_state (alta priorità)
+
     for state_section, section_name in [(knowledge["init_state"], "init"), (knowledge["goal_state"], "goal")]:
         for state_item in state_section:
             if state_item["name"] == fluent_name:
@@ -56,32 +56,32 @@ def infer_fluent_signature_from_usage(knowledge, fluent_name):
                     types.append(inferred_type)
                 
                 if types:
-                    # Alto score per definizioni di stato
+
                     candidates_with_scores.append((types, 1000, section_name))
     
     if not candidates_with_scores:
         return ["Unknown"]
     
-    # Ordina per score
+
     candidates_with_scores.sort(key=lambda x: x[1], reverse=True)
     
-    # Trova la lunghezza più comune
+    
     lengths = [len(c[0]) for c in candidates_with_scores]
     most_common_length = max(set(lengths), key=lengths.count)
     
-    # Filtra per lunghezza più comune
+    
     filtered = [c for c in candidates_with_scores if len(c[0]) == most_common_length]
     
-    # Per ogni posizione, trova il tipo migliore
+    
     result = []
     for i in range(most_common_length):
         types_at_pos = [c[0][i] for c in filtered if i < len(c[0])]
         
         if types_at_pos:
-            # Rimuovi Unknown se ci sono alternative
+            
             known_types = [t for t in types_at_pos if t != "Unknown"]
             if known_types:
-                # Tipo più comune tra quelli conosciuti
+                
                 most_common = max(set(known_types), key=known_types.count)
                 result.append(most_common)
             else:
@@ -91,16 +91,14 @@ def infer_fluent_signature_from_usage(knowledge, fluent_name):
     
     return result
 
-    # TODO non serve pos
 def _infer_type_from_structure(arg, knowledge):
-    """Inferisce il tipo di un argomento dalla sua struttura, senza assunzioni"""
+    """Inferisce il tipo di un argomento dalla sua struttura"""
     
-    # Controlla se è un oggetto conosciuto dai types estratti
     for type_name, instances in knowledge["types"].items():
         if arg in instances:
             return type_name
     
-    # Controlla se sembra numerico (posizione/coordinata)
+    
     if arg.isdigit() or (arg.replace('-', '').replace('.', '').isdigit()):
         return "pos"
     
@@ -109,9 +107,9 @@ def _infer_type_from_structure(arg, knowledge):
 
 def _infer_wildcard_type_from_context(fluent_name, position, action, knowledge):
     """
-    Inferisce il tipo di una wildcard dal contesto, completamente generalizzato
+    Inferisce il tipo di una wildcard anche i supertipi
     """
-    # Cerca lo stesso fluent in altre parti dell'azione
+
     for section in ("preconditions", "add_effects", "del_effects"):
         for item in action.get(section, []):
             if item["name"] == fluent_name and len(item["args"]) > position:
@@ -119,36 +117,77 @@ def _infer_wildcard_type_from_context(fluent_name, position, action, knowledge):
                 if arg_at_position in action["type_constraints"]:
                     return action["type_constraints"][arg_at_position]
     
-    # Cerca nella signature del fluent se disponibile
     if fluent_name in knowledge.get("fluent_signatures", {}):
         sig = knowledge["fluent_signatures"][fluent_name]
         if position < len(sig) and sig[position] != "Unknown":
             return sig[position]
     
-    # # Analizza pattern dai types estratti
-    # available_types = list(knowledge["types"].keys())
+    return "object"   # fallback 
+
+
+def resolve_parameter_types_for_supertypes(knowledge, action):
+    print(f"  Resolving supertypes for action {action['name']}")
     
-    # # Se abbiamo tipi disponibili, usa euristica basata sulla posizione
-    # if available_types:
-    #     # Prima posizione spesso è agente o oggetto principale
-    #     if position == 0 and "agent" in available_types:
-    #         return "agent"
-    #     # Posizioni numeriche spesso sono posizioni
-    #     elif position >= 2 and "pos" in [t.lower() for t in available_types]:
-    #         return "pos"
-    #     # Altrimenti usa il tipo più comune
-    #     else:
-    #         # Trova il tipo con più istanze
-    #         type_with_most_instances = max(knowledge["types"].items(), key=lambda x: len(x[1]))
-    #         return type_with_most_instances[0]
     
-    return "object"  # Fallback finale
+    fluent_signatures = knowledge.get("fluent_signatures", {})
+    supertypes = knowledge.get("supertypes", {})
+    
+    
+    parameter_usage = {}  
+    
+    
+    def analyze_predicate_usage(pred):
+        fluent_name = pred["name"]
+        args = pred["args"]
+        
+        if fluent_name in fluent_signatures:
+            sig = fluent_signatures[fluent_name]
+            
+            for i, arg in enumerate(args):
+                if arg.startswith("Param") and i < len(sig):
+                    required_type = sig[i]
+                    
+                    if arg not in parameter_usage:
+                        parameter_usage[arg] = set()
+                    parameter_usage[arg].add(required_type)
+    
+    
+    for section_name in ["preconditions", "neg_preconditions", "add_effects", "del_effects"]:
+        for pred in action.get(section_name, []):
+            analyze_predicate_usage(pred)
+    
+    
+    resolved_types = action["type_constraints"].copy()
+    
+    for param_name, required_types in parameter_usage.items():
+        if len(required_types) > 1:
+            
+            for supertype_name, constituent_types in supertypes.items():
+                
+                if required_types.issubset(set(constituent_types)):
+                    print(f"    Parameter {param_name}: {required_types} -> {supertype_name}")
+                    resolved_types[param_name] = supertype_name
+                    break
+        elif len(required_types) == 1:
+            required_type = list(required_types)[0]
+            current_type = resolved_types.get(param_name, "Unknown")
+            
+            
+            if required_type in supertypes:
+                print(f"    Parameter {param_name}: {current_type} -> {required_type} (supertype)")
+                resolved_types[param_name] = required_type
+            
+            elif current_type != required_type:
+                for supertype_name, constituent_types in supertypes.items():
+                    if current_type in constituent_types and required_type == supertype_name:
+                        print(f"    Parameter {param_name}: {current_type} -> {supertype_name} (promoted to supertype)")
+                        resolved_types[param_name] = supertype_name
+                        break
+    
+    return resolved_types
 
 
 def generate_up_code_negative_preconditions_section(knowledge, name, act):
-    """
-    Genera la sezione delle precondizioni negative in modo generalizzato
-    """
     lines = []
     
     for neg in act.get("neg_preconditions", []):
@@ -156,12 +195,12 @@ def generate_up_code_negative_preconditions_section(knowledge, name, act):
         pargs = neg["args"]
         wilds = set(neg.get("wildcard_positions", []))
         
-        # Ottieni la signature del fluent
+        
         fluent_sig = knowledge["fluent_signatures"].get(pname)
         if not fluent_sig:
             fluent_sig = infer_fluent_signature_from_usage(knowledge, pname)
         
-        # Estendi la signature se necessario
+        
         while len(fluent_sig) < len(pargs):
             fluent_sig.append("object")
         
@@ -172,7 +211,7 @@ def generate_up_code_negative_preconditions_section(knowledge, name, act):
             if i in wilds or a.startswith("_"):
                 var = f"any_{name}_{i}"
                 
-                # Determina il tipo per la wildcard
+                
                 if i < len(fluent_sig):
                     vtype = fluent_sig[i]
                     if vtype == "Unknown" or vtype is None:
@@ -180,11 +219,19 @@ def generate_up_code_negative_preconditions_section(knowledge, name, act):
                 else:
                     vtype = _infer_wildcard_type_from_context(pname, i, act, knowledge)
                 
-                # Assicurati che il tipo sia valido
+                
                 if vtype == "Unknown":
                     vtype = "object"
                 
-                lines.append(f"{var} = Variable('{var}', {vtype.capitalize()})")
+                
+                if vtype in knowledge.get("supertypes", {}):
+                    
+                    type_name = vtype
+                else:
+                    
+                    type_name = vtype.capitalize()
+                
+                lines.append(f"{var} = Variable('{var}', {type_name})")
                 expr.append(var)
                 vars_for_exists.append(var)
             else:
@@ -204,7 +251,7 @@ def convert_numbers_to_strings(knowledge):
     """
     
     def convert_number_if_needed(value):
-        """Converte un valore se è numerico"""
+        
         if isinstance(value, str) and value.isdigit():
             return f"x{value}"
         elif isinstance(value, (int, float)):
@@ -212,13 +259,13 @@ def convert_numbers_to_strings(knowledge):
         return value
     
     def convert_predicate_args(pred):
-        """Converte gli argomenti di un predicato"""
+        
         converted_pred = pred.copy()
         converted_pred["args"] = [convert_number_if_needed(arg) for arg in pred["args"]]
         return converted_pred
     
     def convert_action_args(action):
-        """Converte gli argomenti nelle azioni"""
+        
         converted_action = action.copy()
         
         for section in ["preconditions", "neg_preconditions", "add_effects", "del_effects"]:
@@ -245,44 +292,97 @@ def extract_string_objects_from_knowledge(knowledge):
     """
     Estrae tutti gli oggetti stringa (inclusi quelli convertiti da numeri)
     dal knowledge per creare gli oggetti UP necessari.
-    ESCLUDI oggetti già definiti nei types.
     """
     string_objects = set()
     
-    # Prima raccogli tutti gli oggetti già definiti nei types
-    already_defined_objects = set()
-    for type_name, instances in knowledge["types"].items():
-        for instance in instances:
-            if isinstance(instance, str):
-                already_defined_objects.add(instance)
     
-    # Raccogli da init_state e goal_state
     for state_section in [knowledge["init_state"], knowledge["goal_state"]]:
         for pred in state_section:
             for arg in pred["args"]:
                 if (isinstance(arg, str) and 
-                    not arg.startswith("Param") and 
-                    arg not in already_defined_objects):  # ESCLUDI oggetti già definiti
+                    not arg.startswith("Param") and
+                    not arg.startswith("_")):
                     string_objects.add(arg)
     
-    # Raccogli dalle azioni
+    
     for action in knowledge["actions"]:
         for section in ["preconditions", "neg_preconditions", "add_effects", "del_effects"]:
             for pred in action.get(section, []):
                 for arg in pred["args"]:
                     if (isinstance(arg, str) and 
                         not arg.startswith("Param") and 
-                        not arg.startswith("_") and
-                        arg not in already_defined_objects):  # ESCLUDI oggetti già definiti
+                        not arg.startswith("_")):
                         string_objects.add(arg)
     
     return sorted(string_objects)
 
 
-def generate_up_code(knowledge, out_dir):
-    """Generate UP code with simple number-to-string conversion - FIXED VERSION"""
+def generate_supertype_definitions(knowledge):
+    """
+    Genera le definizioni dei supertipi e crea oggetti che appartengono a questi supertipi.
+    """
+    supertype_lines = []
+    supertype_objects = {}  # supertype_name -> list of object instances
     
-    # Prima di tutto, converti tutti i numeri in stringhe
+    if "supertypes" not in knowledge:
+        return supertype_lines, supertype_objects
+    
+    print("\n=== GENERATING SUPERTYPE DEFINITIONS ===")
+    
+    for supertype_name, constituent_types in knowledge["supertypes"].items():
+        
+        supertype_lines.append(f"{supertype_name} = UserType('{supertype_name.lower()}')")
+        print(f"Created supertype: {supertype_name} = {constituent_types}")
+        
+        # Raccogli tutti gli oggetti che appartengono a questo supertipo
+        supertype_instances = []
+        
+        
+        for constituent_type in constituent_types:
+            if constituent_type in knowledge["types"]:
+                for instance in knowledge["types"][constituent_type]:
+                    if isinstance(instance, str):
+                        supertype_instances.append(instance)
+        
+        supertype_objects[supertype_name] = supertype_instances
+        print(f"  Instances: {supertype_instances}")
+    
+    print("=== END SUPERTYPE GENERATION ===\n")
+    
+    return supertype_lines, supertype_objects
+
+
+#TODO  ricontrolla
+def get_effective_type_for_object(obj_name, knowledge, supertype_objects):
+    """
+    Determina il tipo effettivo di un oggetto, considerando i supertipi.
+    """
+    
+    for supertype_name, instances in supertype_objects.items():
+        if obj_name in instances:
+            return supertype_name
+    
+    
+    for type_name, instances in knowledge["types"].items():
+        if obj_name in instances:
+            return type_name.capitalize()
+    
+    
+    if obj_name.startswith("x") and obj_name[1:].isdigit():
+        return "Pos"
+    
+    # Fallback ad "Object" se non trovato
+    available_types = list(knowledge["types"].keys())
+    if available_types:
+        return available_types[0].capitalize()
+    
+    return "Object"
+
+
+def generate_up_code(knowledge, out_dir):
+    """Generate UP code with polymorphic fluent support"""
+    
+    
     knowledge = convert_numbers_to_strings(knowledge)
     
     lines = []
@@ -299,31 +399,52 @@ def generate_up_code(knowledge, out_dir):
     wp("from unified_planning.io import PDDLWriter")
     wp("from unified_planning.shortcuts import *")
     wp("")
+    wp("# Suppress credits output if available")
+    wp("try:")
+    wp("    up.shortcuts.get_environment().credits_stream = None")
+    wp("except AttributeError:")
+    wp("    pass  # get_environment() not available in this UP version")
+    wp("")
 
-    # 2) Tipi (UserType)
+    # 2) Tipi originali (UserType)
     for t, instances in knowledge["types"].items():
         wp(f"{t.capitalize()} = UserType('{t}')")
     wp("")
     
-    # Creazione del set per valori unici dalle firme dei fluent
+    # 3) Genera supertipi se presenti
+    supertype_lines, supertype_objects = generate_supertype_definitions(knowledge)
+    for line in supertype_lines:
+        wp(line)
+    if supertype_lines:
+        wp("")
+    
+    # 4) Tipi aggiuntivi dai fluent signatures
     unique_types = set()
     for fluent_name, type_list in knowledge['fluent_signatures'].items():
         unique_types.update(type_list)
 
     # Rimuovi "Unknown" dai tipi e aggiungi tipi mancanti comuni
     unique_types.discard("Unknown")
-    # TOD non serve pos
-    unique_types.add("pos")  # Assicurati che 'pos' sia incluso
+    unique_types.add("pos") 
     unique_types_list = list(unique_types)
 
     print(f"Tipi unici trovati: {unique_types_list}")
 
+    existing_types = set([t.lower() for t in knowledge["types"].keys()])
+    existing_supertypes = set()
+    if "supertypes" in knowledge:
+        existing_supertypes = set([st.lower() for st in knowledge["supertypes"].keys()])
+    
     for UT in unique_types_list:
-        if UT not in knowledge["types"]:  # Non ridefinire tipi già esistenti
-            wp(f"{UT.capitalize()} = UserType('{UT}')")
+        ut_lower = UT.lower()
+        
+        
+        supertype_names = set(knowledge.get("supertypes", {}).keys())
+        if ut_lower not in existing_types and UT not in supertype_names:
+            wp(f"{UT.capitalize()} = UserType('{ut_lower}')")
     wp("")
 
-    # 3) Fluents con firme migliorate
+    # 5) Fluents con firme che supportano supertipi
     for f in knowledge["fluents"]:
         sig = knowledge["fluent_signatures"].get(f, [])
         
@@ -332,7 +453,7 @@ def generate_up_code(knowledge, out_dir):
             sig = infer_fluent_signature_from_usage(knowledge, f)
             print(f"  Warning: Inferred signature for fluent '{f}': {sig}")
         
-        # Pulisci la signature da tipi Unknown
+
         cleaned_sig = []
         for typ in sig:
             if typ == "Unknown":
@@ -343,93 +464,84 @@ def generate_up_code(knowledge, out_dir):
         params = []
         for i, typ in enumerate(cleaned_sig):
             var = f"p{i}"
-            params.append(f"{var}={typ.capitalize()}")
+            if typ in knowledge.get("supertypes", {}):
+                params.append(f"{var}={typ}")  
+            else:
+                params.append(f"{var}={typ.capitalize()}") 
+        
         params_str = ", ".join(params)
         wp(f"{f} = Fluent('{f}', BoolType(){', ' + params_str if params_str else ''})")
     wp("")
 
-    # 4) Problem e fluents iniziali
+    # 6) Problem e fluents iniziali
     wp("problem = Problem('from_prolog')")
     for f in knowledge["fluents"]:
         wp(f"problem.add_fluent({f}, default_initial_value=False)")
     wp("")
 
-    # 5) Oggetti - SEZIONE CORRETTA
-    all_objects_to_create = []
+    # 7) Oggetti
+    all_objects_to_create = set()
     
-    # Prima: oggetti dai types originali (con i loro tipi corretti)
-    for t, instances in knowledge["types"].items():
-        for inst in instances:
-            if isinstance(inst, str) and not any(char in str(inst) for char in ['(', ')', '_', ' ']):
-                wp(f"{inst} = Object('{inst}', {t.capitalize()})")
-                all_objects_to_create.append(inst)
     
-    # Poi: SOLO gli oggetti stringa nuovi (esclusi quelli già definiti)
     string_objects = extract_string_objects_from_knowledge(knowledge)
-    for obj in string_objects:
-        # TODO riadatta in modo da assegnare tipo ad x1 x2 etc come con tutti gli altri senza forzatura
-        # Inferisci il tipo dell'oggetto
-        if obj.startswith("x") and obj[1:].isdigit():
-            obj_type = "Pos"
-        else:
-            # Usa un tipo generico per oggetti non riconosciuti
-            obj_type = "Object"  # Questo dovrebbe essere sostituito con un tipo valido
-            # Se non abbiamo un tipo Object definito, usa il primo tipo disponibile come fallback
-            if "Object" not in [t.capitalize() for t in knowledge["types"].keys()] + unique_types_list:
-                available_types = [t.capitalize() for t in knowledge["types"].keys()] + unique_types_list
-                if available_types:
-                    obj_type = available_types[0]  # Usa il primo tipo disponibile
-        
-        wp(f"{obj} = Object('{obj}', {obj_type})")
-        all_objects_to_create.append(obj)
+    all_objects_to_create.update(string_objects)
     
-    # Lista oggetti SENZA duplicazioni
+    
+    objects_created = []
+    for obj in sorted(all_objects_to_create):
+        
+        effective_type = get_effective_type_for_object(obj, knowledge, supertype_objects)
+        
+        wp(f"{obj} = Object('{obj}', {effective_type})")
+        objects_created.append(obj)
+    
+    
     wp("problem.add_objects([")
-    for obj in all_objects_to_create:
+    for obj in objects_created:
         wp(f"    {obj},")
     wp("])")
     wp("")
 
-    # 6) Stato iniziale (numeri già convertiti)
+    # 8) Stato iniziale (numeri già convertiti)
     for pred in knowledge["init_state"]:
         name = pred["name"]
         args = ", ".join(pred["args"])
         wp(f"problem.set_initial_value({name}({args}), True)")
     wp("")
 
-    # 7) Goal state (numeri già convertiti)
+    # 9) Goal state (numeri già convertiti)
     for pred in knowledge["goal_state"]:
         name = pred["name"]
         args = ", ".join(pred["args"])
         wp(f"problem.add_goal({name}({args}))")
     wp("")
 
-    # 8) Azioni (numeri già convertiti)
+    # 10) Azioni (numeri già convertiti)
     for act in knowledge["actions"]:
         name = act["name"]
         params = act["parameters"]
         types = act["type_constraints"]
         
-        # DEBUG: Validate type constraints before generating action
+        
         print(f"\nDEBUG: Processing action {name}")
         print(f"  Parameters: {params}")
         print(f"  Type constraints: {types}")
         
-        # Check if all parameters have type constraints
+        
         missing_types = []
         for p in params:
             if p not in types or types[p] == "Unknown":
                 missing_types.append(p)
                 print(f"  WARNING: Parameter {p} has no type constraint or Unknown type!")
         
-        # If there are missing types, try to infer them from fluent usage
+        
         if missing_types:
             print(f"  Attempting to infer types for: {missing_types}")
             for missing_param in missing_types:
-                # Look for this parameter in preconditions and effects
+                
                 inferred_type = None
                 
-                # Check in preconditions
+                
                 for pre in act.get("preconditions", []):
                     if missing_param in pre["args"]:
                         idx = pre["args"].index(missing_param)
@@ -440,7 +552,7 @@ def generate_up_code(knowledge, out_dir):
                                 inferred_type = sig[idx]
                                 break
                 
-                # Check in add effects if not found
+                
                 if not inferred_type:
                     for eff in act.get("add_effects", []):
                         if missing_param in eff["args"]:
@@ -452,7 +564,7 @@ def generate_up_code(knowledge, out_dir):
                                     inferred_type = sig[idx]
                                     break
                 
-                # Check in del effects if still not found
+                
                 if not inferred_type:
                     for eff in act.get("del_effects", []):
                         if missing_param in eff["args"]:
@@ -471,20 +583,29 @@ def generate_up_code(knowledge, out_dir):
                     print(f"    Could not infer type for {missing_param}, using 'object'")
                     types[missing_param] = "object"
         
+        
+        types = resolve_parameter_types_for_supertypes(knowledge, act)
+        
         wp(f"# --- action {name}")
         
-        # Firma InstantaneousAction - ensure all parameters have valid types
+        
         sig_parts = []
         for p in params:
             param_type = types.get(p, 'object')
             if param_type == "Unknown":
                 param_type = "object"
-            sig_parts.append(f"{p}={param_type.capitalize()}")
+            
+            
+            
+            if param_type in knowledge.get("supertypes", {}):
+                sig_parts.append(f"{p}={param_type}")  
+            else:
+                sig_parts.append(f"{p}={param_type.capitalize()}")  
         
         sig = ", ".join(sig_parts)
         wp(f"{name} = InstantaneousAction('{name}', {sig})")
         
-        # Binding parametri
+        
         for p in params:
             wp(f"{p} = {name}.parameter('{p}')")
         
@@ -499,14 +620,25 @@ def generate_up_code(knowledge, out_dir):
         for line in neg_precond_lines:
             wp(line)
         
-        # Add Not(Equals(...)) constraints for different block parameters
-        # Detect which parameters are blocks and add inequality constraints
-        block_params = [p for p in params if types.get(p) == "block"]
-        if len(block_params) > 1:
-            # Add inequality constraints for all pairs of block parameters
-            for i in range(len(block_params)):
-                for j in range(i + 1, len(block_params)):
-                    wp(f"{name}.add_precondition(Not(Equals({block_params[i]}, {block_params[j]})))")
+        
+        
+        type_to_params = {}
+        for p in params:
+            param_type = types.get(p, 'object')
+            if param_type == "Unknown":
+                param_type = "object"
+            
+            if param_type not in type_to_params:
+                type_to_params[param_type] = []
+            type_to_params[param_type].append(p)
+        
+        
+        for param_type, param_list in type_to_params.items():
+            if len(param_list) > 1:
+                
+                for i in range(len(param_list)):
+                    for j in range(i + 1, len(param_list)):
+                        wp(f"{name}.add_precondition(Not(Equals({param_list[i]}, {param_list[j]})))")
         
         # Effetti delete
         for eff in act.get("del_effects", []):
@@ -524,7 +656,7 @@ def generate_up_code(knowledge, out_dir):
         wp(f"problem.add_action({name})")
         wp("")
 
-    # 9) Export PDDL
+    # 11) Export PDDL
     wp("writer = PDDLWriter(problem)")
     wp("writer.write_domain('generated_domain.pddl')")
     wp("writer.write_problem('generated_problem.pddl')")
@@ -533,74 +665,18 @@ def generate_up_code(knowledge, out_dir):
     return "\n".join(lines)
 
 
-def extract_position_coordinates(knowledge):
-    """
-    Estrae tutte le coordinate numeriche uniche da init_state e goal_state
-    per creare gli oggetti Pos necessari.
-    """
-    coordinates = set()
-    
-    # Analizza init_state e goal_state per trovare coordinate in fluent 'at'
-    # for state_section in [knowledge["init_state"], knowledge["goal_state"]]:
-    #     for pred in state_section:
-    #         if pred["name"] == "at" and len(pred["args"]) >= 3:
-    #             # Estrai le coordinate (assumendo che siano nelle posizioni 1 e 2)
-    #             for coord in pred["args"][1:]:  # Salta il primo argomento (object)
-    #                 if coord.isdigit() or (coord.replace('-', '').replace('.', '').isdigit()):
-    #                     coordinates.add(coord)
-    
-    return sorted(coordinates, key=lambda x: int(x))
-
-
-def create_position_objects(coordinates):
-    """
-    Crea gli oggetti Pos per ogni coordinata unica
-    """
-    pos_objects = {}
-    pos_creation_lines = []
-    
-    for coord in coordinates:
-        pos_name = f"pos_{coord}"
-        pos_objects[coord] = pos_name
-        pos_creation_lines.append(f"{pos_name} = Object('{pos_name}', Pos)")
-    
-    return pos_objects, pos_creation_lines
-
-
-# TODO rimuovi, non serve
-def replace_coordinates_in_predicate(pred, pos_objects):
-    """
-    Sostituisce le coordinate numeriche con oggetti Pos in un predicato
-    """
-    # if pred["name"] == "at" and len(pred["args"]) >= 3:
-    #     # Sostituisci solo le coordinate (posizioni 1 e successive)
-    #     new_args = [pred["args"][0]]  # Mantieni il primo argomento (object)
-        
-    #     for coord in pred["args"][1:]:
-    #         if coord in pos_objects:
-    #             new_args.append(pos_objects[coord])
-    #         else:
-    #             new_args.append(coord)  # Mantieni come era se non è una coordinata
-        
-    #     return {
-    #         "name": pred["name"],
-    #         "args": new_args
-    #     }
-    
-    return pred 
-
 if __name__ == "__main__":
-        # For standalone execution - look for JSON in current directory
+        
         json_file = "extracted_knowledge.json"
         if not os.path.exists(json_file):
             print(f"Error: {json_file} not found in current directory")
             sys.exit(1)
             
-        # Load knowledge from the extracted JSON
+        
         with open(json_file) as f:
             knowledge = json.load(f)
         
-        # Generate and save the UP code in current directory
+        
         code = generate_up_code(knowledge, ".")
         with open('generated_up.py', 'w') as f:
             f.write(code)

@@ -6,7 +6,7 @@ import subprocess
 import time
 from datetime import datetime
 
-# Import functions from existing modules
+
 from prolog_extractor import extract_prolog_knowledge, analyze_fluent_signatures, print_knowledge_summary
 from kb_to_json import knwoledge_to_json
 
@@ -20,12 +20,12 @@ def main():
     
     args = parser.parse_args()
     
-    # Check if Prolog file exists
+    
     if not os.path.exists(args.prolog_file):
         print(f"Error: Prolog file '{args.prolog_file}' not found!")
         return 1
     
-    # Create timestamped output directory
+    
     timestamp = datetime.now().strftime("%m%d_%H%M")
     filename = os.path.splitext(os.path.basename(args.prolog_file))[0]
     output_dir = f"RESULTS/CONVERTER/{filename}_{timestamp}"
@@ -37,14 +37,14 @@ def main():
         print("Solver: ENABLED")
     print()
     
-    # Start total timing
+    
     total_start_time = time.time()
     
     try:
-        # Ensure the output directory exists
+        
         os.makedirs(output_dir, exist_ok=True)
         
-        # Step 1: Extract knowledge from Prolog file
+        
         print("Step 1: Extracting knowledge from Prolog file...")
         step1_start = time.time()
         knowledge = extract_prolog_knowledge(args.prolog_file)
@@ -56,7 +56,7 @@ def main():
             print(f"  - Found {len(knowledge['actions'])} actions")
         print(f"  ⏱️  Extraction completed in {step1_time:.3f} seconds")
         
-        # Step 2: Analyze fluent signatures
+        
         print("\nStep 2: Analyzing fluent signatures...")
         step2_start = time.time()
         fluent_signatures = analyze_fluent_signatures(knowledge)
@@ -76,13 +76,13 @@ def main():
             print_knowledge_summary(knowledge, fluent_signatures)
         print(f"  ⏱️  Signature analysis completed in {step2_time:.3f} seconds")
         
-        # Step 3: Convert to JSON format
+        
         print("\nStep 3: Converting knowledge to JSON format...")
         step3_start = time.time()
         structured_knowledge = knwoledge_to_json(knowledge)
         step3_time = time.time() - step3_start
         
-        # Step 4: Save JSON to file
+        
         print("Step 4: Saving extracted knowledge to JSON...")
         step4_start = time.time()
         json_output_path = os.path.join(output_dir, "extracted_knowledge.json")
@@ -93,17 +93,17 @@ def main():
         print(f"  - Saved to: {json_output_path}")
         print(f"  ⏱️  JSON generation completed in {step3_time + step4_time:.3f} seconds")
         
-        # Step 5: Generate UP code from JSON
+        
         print("\nStep 5: Generating Unified Planning code...")
         step5_start = time.time()
         
-        # Import and execute the code generation from prolog2up_V2.py
+        
         from prolog2up_V2 import generate_up_code
         
-        # Generate the UP code with the correct output directory
+        
         up_code = generate_up_code(structured_knowledge, output_dir)
         
-        # Save the generated code
+        
         up_output_path = os.path.join(output_dir, "generated_up.py")
         with open(up_output_path, 'w') as f:
             f.write(up_code)
@@ -112,13 +112,13 @@ def main():
         print(f"  - Generated UP code: {up_output_path}")
         print(f"  ⏱️  UP code generation completed in {step5_time:.3f} seconds")
         
-        # Step 6: Execute the generated UP code to create PDDL files
+        
         print("\nStep 6: Executing generated UP code to create PDDL files...")
         step6_start = time.time()
         
-        # Execute the generated UP code using subprocess
+        
         try:
-            # Change working directory to output directory and run the script
+            
             result = subprocess.run([
                 sys.executable, "generated_up.py"
             ], capture_output=True, text=True, cwd=output_dir)
@@ -136,13 +136,13 @@ def main():
                 raise Exception("UP code execution failed")
         except Exception as e:
             print(f"  - Exception while executing generated UP code: {e}")
-            # Try fallback method
+            
             print("  - Trying fallback execution method...")
             try:
                 original_cwd = os.getcwd()
                 os.chdir(output_dir)
                 
-                # Import and execute the generated code
+                
                 import importlib.util
                 spec = importlib.util.spec_from_file_location("generated_up", "generated_up.py")
                 generated_module = importlib.util.module_from_spec(spec)
@@ -158,12 +158,12 @@ def main():
         step6_time = time.time() - step6_start
         print(f"  ⏱️  PDDL generation completed in {step6_time:.3f} seconds")
         
-        # Step 7: Optional - Run PDDL solver
+        
         if args.solve:
             print("\nStep 7: Running PDDL solver...")
             step7_start = time.time()
             
-            # Check if PDDL files were generated
+            
             domain_file = os.path.join(output_dir, "generated_domain.pddl")
             problem_file = os.path.join(output_dir, "generated_problem.pddl")
             
@@ -171,14 +171,14 @@ def main():
                 print(f"  - Error: PDDL files not found!")
                 return 1
             
-            # Run the planner using simplified run_plan.py
+            
             try:
                 run_plan_script = "PDDL/run_plan.py"
                 if not os.path.exists(run_plan_script):
                     print(f"  - Error: Solver script '{run_plan_script}' not found!")
                     return 1
                 
-                # Build command for the planner
+                
                 planner_cmd = [
                     sys.executable, run_plan_script,
                     domain_file, problem_file,
@@ -188,7 +188,7 @@ def main():
                     "--timeout", "300"
                 ]
                 
-                # Execute the planner (capture output to avoid verbose printing)
+                
                 result = subprocess.run(
                     planner_cmd,
                     capture_output=True,
