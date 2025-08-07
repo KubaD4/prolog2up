@@ -57,15 +57,55 @@ class FastDownwardRunner(PlannerRunner):
     def _map_search_name(self, search):
         """Map search algorithm names to Fast Downward search strings"""
         search_algorithms = {
+            # Basic algorithms (originali)
             "astar_ff": "astar(ff())",
             "astar_blind": "astar(blind())",
+            "lazy_greedy": "lazy_greedy([ff()])",
+            "eager_greedy": "eager_greedy([ff()])",
+            
+            # Advanced A* variants
             "astar_lmcount": "astar(lmcount(lm_factory=lm_rhw()))",
             "astar_lmcut": "astar(lmcut())",
+            "astar_goalcount": "astar(goalcount())",
+            "astar_add": "astar(add())",
+            "astar_max": "astar(max([ff(), goalcount()]))",
+            
+            # Weighted A* variants  
             "wastar": "eager_wastar([ff()], w=2)",
-            "eager_greedy": "eager_greedy([ff()])",
-            "lazy_greedy": "lazy_greedy([ff()])",
-            "lazy_wastar": "lazy_wastar([ff()], w=2)"
+            "wastar_ff_w3": "eager_wastar([ff()], w=3)",
+            "wastar_ff_w5": "eager_wastar([ff()], w=5)",
+            "lazy_wastar": "lazy_wastar([ff()], w=2)",
+            "lazy_wastar_w3": "lazy_wastar([ff()], w=3)",
+            "lazy_wastar_w5": "lazy_wastar([ff()], w=5)",
+            
+            # Greedy variants with different heuristics
+            "lazy_greedy_ff": "lazy_greedy([ff()])",
+            "lazy_greedy_add": "lazy_greedy([add()])",
+            "lazy_greedy_goalcount": "lazy_greedy([goalcount()])",
+            "lazy_greedy_lmcut": "lazy_greedy([lmcut()])",
+            "eager_greedy_ff": "eager_greedy([ff()])",
+            "eager_greedy_add": "eager_greedy([add()])",
+            "eager_greedy_lmcut": "eager_greedy([lmcut()])",
+            
+            # Multi-heuristic approaches
+            "lazy_greedy_multi": "lazy_greedy([ff(), add()])",
+            "eager_greedy_multi": "eager_greedy([ff(), add()])",
+            "lazy_greedy_ff_goalcount": "lazy_greedy([ff(), goalcount()])",
+            
+            # Diverse search strategies
+            "ehc_ff": "ehc(ff())",  # Enforced Hill Climbing
+            "iterated": "iterated([lazy_greedy([ff()]), lazy_wastar([ff()])])",
+            
+            # Advanced configurations
+            "lazy_greedy_preferred": "lazy_greedy([ff()], preferred=[ff()])",
+            "astar_merge_shrink": "astar(merge_and_shrink(shrink_strategy=shrink_bisimulation(greedy=false), merge_strategy=merge_sccs(order_of_sccs=topological, merge_selector=score_based_filtering(scoring_functions=[goal_relevance(), dfp(), total_order()])), label_reduction=exact(before_shrinking=true, before_merging=false), max_states=50000, threshold_before_merge=1))",
+            
+            # Simple but effective combinations
+            "lazy_best_first": "lazy_greedy([ff()], preferred=[ff()])",
+            "eager_best_first": "eager_greedy([ff()], preferred=[ff()])",
         }
+        
+        # Default fallback
         return search_algorithms.get(search, "lazy_greedy([ff()])")
     
     def _extract_plan(self):
@@ -284,27 +324,9 @@ class FastDownwardRunner(PlannerRunner):
     
     
     def run(self, search):
-        """Run Fast Downward and return results with detailed diagnostics"""
+        """Run Fast Downward with timeout and real-time feedback"""
         # Clean up any existing plan files
         self._clean_up_plan_files()
-        
-        # Validate PDDL files first
-        domain_validation = self._validate_pddl_file(self.domain_file, "domain")
-        problem_validation = self._validate_pddl_file(self.problem_file, "problem")
-        
-        if not domain_validation["valid"] or not problem_validation["valid"]:
-            return {
-                'planner': 'fast_downward',
-                'search': search,
-                'success': False,
-                'error': f"PDDL Validation Failed: {domain_validation.get('error', '')} {problem_validation.get('error', '')}",
-                'domain_stats': domain_validation.get('stats', {}),
-                'problem_stats': problem_validation.get('stats', {}),
-                'validation_details': {
-                    'domain': domain_validation,
-                    'problem': problem_validation
-                }
-            }
         
         # Map search algorithm name to Fast Downward search string
         search_command = self._map_search_name(search)
@@ -312,87 +334,122 @@ class FastDownwardRunner(PlannerRunner):
         # Build the command
         cmd = [sys.executable, self.fd_path, self.domain_file, self.problem_file, "--search", search_command]
         
+        # Smart timeout based on algorithm type
+        algorithm_timeouts = {
+            'lazy_greedy': 60,     # Very fast
+            'eager_greedy': 60,    # Very fast
+            'astar_ff': 60,        # Medium
+            'wastar': 60,          # Medium-fast
+            'lazy_wastar': 60,     # Fast
+            'astar_blind': 60,     # Can be slow but often fails quickly if too hard
+            'astar_lmcut': 60,     # Often slow but powerful
+            'astar_lmcount': 60,   # Often slow but powerful
+        }
+        
+        # Use smart timeout or fallback to default
+        smart_timeout = algorithm_timeouts.get(search, self.timeout)
+        effective_timeout = min(smart_timeout, self.timeout)
+        
         # Mark timing points
         process_start_time = time.time()
         
         try:
-            if self.verbose:
-                print(f"Executing: {' '.join(cmd)}")
-                print(f"Domain file: {self.domain_file}")
-                print(f"Problem file: {self.problem_file}")
-                print(f"Search algorithm: {search} -> {search_command}")
-                print(f"Timeout: {self.timeout} seconds")
-            
-            # Run Fast Downward
+            # Run Fast Downward with smart timeout
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=self.timeout
+                timeout=effective_timeout
             )
             process_end_time = time.time()
             
             # Get the output
             output = result.stdout + result.stderr
             
-            if self.verbose:
-                print(f"\n=== PLANNER OUTPUT ===")
-                print(output)
-                print(f"=== END OUTPUT ===\n")
+            # Check for specific error conditions with better categorization
+            error_msg = None
+            if "Parse error" in output or "parsing failed" in output:
+                error_msg = "PDDL syntax error"
+            elif "unsolvable" in output.lower() or "goal unreachable" in output.lower():
+                error_msg = "Problem unsolvable"
+            elif "Memory limit exceeded" in output or "std::bad_alloc" in output:
+                error_msg = "Out of memory"
+            elif "Time limit exceeded" in output or "TIMEOUT" in output:
+                error_msg = "Time limit exceeded"  
+            elif "Search stopped without finding a solution" in output:
+                error_msg = "No solution in limits"
+            elif "translate" in output and result.returncode != 0:
+                error_msg = "Translation failed"
+            elif result.returncode != 0:
+                error_msg = f"Failed (code {result.returncode})"
             
             # Check if solution was found
-            solution_found = "Solution found" in output or os.path.exists("sas_plan")
+            solution_found = (("Solution found" in output or 
+                            os.path.exists("sas_plan") or 
+                            "search exit code: 0" in output) and 
+                            error_msg is None)
             
             # Extract plan
             plan = self._extract_plan() if solution_found else None
             
-            # Extract statistics
+            # Extract statistics  
             stats = self._extract_stats(output)
             
             # Add process timing
             stats['process_time'] = process_end_time - process_start_time
             stats['wall_time'] = process_end_time - process_start_time
             
-            # Enhanced error analysis
-            error_analysis = self._analyze_failure(output, result.returncode, solution_found)
+            # If we have a plan but no explicit success message, confirm it's valid
+            if plan and not solution_found and error_msg is None:
+                solution_found = True
             
-            return {
+            # Build result dictionary
+            result_dict = {
                 'planner': 'fast_downward',
                 'search': search,
                 'success': solution_found,
-                'plan': plan,
+                'plan': plan if solution_found else [],
                 'stats': stats,
-                'output': output,
-                'returncode': result.returncode,
-                'error': error_analysis['error'],
-                'error_type': error_analysis['type'],
-                'suggestions': error_analysis['suggestions'],
-                'domain_stats': domain_validation.get('stats', {}),
-                'problem_stats': problem_validation.get('stats', {}),
-                'command_used': ' '.join(cmd)
+                'output': output if self.verbose else "",
+                'error': error_msg,
+                'search_command': search_command,
+                'timeout_used': effective_timeout
             }
+            
+            return result_dict
+            
         except subprocess.TimeoutExpired:
+            process_end_time = time.time()
+            wall_time = process_end_time - process_start_time
+            
             return {
-                'planner': 'fast_downward',
+                'planner': 'fast_downward', 
                 'search': search,
                 'success': False,
-                'error': f'Timeout after {self.timeout} seconds',
-                'error_type': 'timeout',
-                'suggestions': ['Try increasing timeout', 'Use a simpler search algorithm', 'Simplify the problem'],
-                'stats': {'wall_time': self.timeout},
-                'domain_stats': domain_validation.get('stats', {}),
-                'problem_stats': problem_validation.get('stats', {})
+                'plan': [],
+                'stats': {'wall_time': wall_time, 'process_time': wall_time},
+                'output': f"Timed out after {wall_time:.1f}s",
+                'error': f"Timeout ({effective_timeout}s)",
+                'search_command': search_command,
+                'timeout_used': effective_timeout
             }
+            
         except Exception as e:
+            process_end_time = time.time()
+            wall_time = process_end_time - process_start_time
+            
             return {
                 'planner': 'fast_downward',
-                'search': search,
+                'search': search, 
                 'success': False,
-                'error': str(e),
-                'error_type': 'execution_error',
-                'stats': {'wall_time': time.time() - process_start_time},
-                'exception': traceback.format_exc() if self.verbose else None
+                'plan': [],
+                'stats': {'wall_time': wall_time, 'process_time': wall_time},
+                'output': f"Exception: {str(e)}",
+                'error': f"Error: {str(e)}"[:50],
+                'search_command': search_command,
+                'timeout_used': effective_timeout
             }
+
 
 
 class SimplifiedPlannerTool:
@@ -418,14 +475,29 @@ class SimplifiedPlannerTool:
     def run_comparison(self, planners=['fd'], search_algorithms=['lazy_greedy', 'astar_ff']):
         """Run the comparison with specified planners and search algorithms"""
         results = []
+        successful_results = []
+        failed_results = []
+        
+        print(f"🚀 Running {len(search_algorithms)} search algorithms...")
+        print(f"📋 Algorithms: {', '.join(search_algorithms)}")
+        print(f"⏱️  Individual timeout: {self.timeout}s per algorithm")
+        print()
         
         for planner_name in planners:
             if planner_name not in self.planners:
+                print(f"⚠️  Warning: Planner '{planner_name}' not available, skipping...")
                 continue
             
             planner = self.planners[planner_name]
             
-            for search in search_algorithms:
+            for i, search in enumerate(search_algorithms, 1):
+                # Progress indicator with IMMEDIATE output
+                progress_bar = "█" * (i * 20 // len(search_algorithms)) + "░" * (20 - (i * 20 // len(search_algorithms)))
+                print(f"  [{i:2d}/{len(search_algorithms)}] [{progress_bar}] Testing {search:15s}... ", end="", flush=True)
+                
+                # Force immediate output
+                sys.stdout.flush()
+                
                 # Run the planner with the search algorithm
                 start_time = time.time()
                 result = planner.run(search)
@@ -436,14 +508,58 @@ class SimplifiedPlannerTool:
                     result['stats'] = {}
                 result['stats']['total_time'] = end_time - start_time
                 
+                # Show result immediately with timing
+                if result['success']:
+                    successful_results.append(result)
+                    plan_length = len(result['plan']) if result['plan'] else 0
+                    timing = result['stats'].get('total_time', 0)
+                    print(f"✅ Found plan ({plan_length} steps) in {timing:.3f}s")
+                else:
+                    failed_results.append(result)  
+                    error = result.get('error', 'Unknown error')
+                    timing = result['stats'].get('total_time', 0)
+                    # Truncate long errors for readability
+                    short_error = error if len(error) < 40 else error[:37] + "..."
+                    print(f"❌ {short_error} in {timing:.3f}s")
+                
+                # Force immediate output
+                sys.stdout.flush()
+                
                 # Save the result
                 results.append(result)
+        
+        # Final progress bar
+        print(f"  [✓] [████████████████████] Completed all algorithms!")
+        print()
+        
+        # Print detailed summary
+        print(f"📊 Planning Summary:")
+        print(f"  ✅ Successful: {len(successful_results)}/{len(search_algorithms)} algorithms")
+        print(f"  ❌ Failed: {len(failed_results)}/{len(search_algorithms)} algorithms")
+        
+        if successful_results:
+            times = [r['stats'].get('total_time', 0) for r in successful_results]
+            avg_time = sum(times) / len(times)
+            best_time = min(times)
+            worst_time = max(times)
+            print(f"  ⏱️  Timing: best {best_time:.3f}s | avg {avg_time:.3f}s | worst {worst_time:.3f}s")
+            
+            # Show best algorithm
+            best_result = min(successful_results, key=lambda r: r['stats'].get('total_time', float('inf')))
+            print(f"  🏆 Fastest: {best_result['search']} in {best_result['stats'].get('total_time', 0):.3f}s")
+            
+        if failed_results:
+            failed_names = [r['search'] for r in failed_results]
+            print(f"  💥 Failed algorithms: {', '.join(failed_names)}")
+        
+        print()
         
         # Generate unified results file
         self._generate_unified_results(results)
         
         # Return success if any planner found a solution
-        return any(r['success'] for r in results)
+        return len(successful_results) > 0
+
     
     def _generate_unified_results(self, results):
         """Generate a single unified results file"""

@@ -1,0 +1,19 @@
+# pip3 install -r requirements.txt 
+# Core dependencies for the PDDL planning system
+unified-planning
+unified-planning[engines]  # Include all planning engines
+
+# For Prolog extraction
+pyswip
+
+# For table formatting and output
+prettytable
+
+# Additional planning engines (optional)
+pyperplan
+
+# For development and testing
+pytest
+
+# then 
+# brew install swi-prolog

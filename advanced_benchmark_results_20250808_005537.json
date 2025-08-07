@@ -1,0 +1,150 @@
+{
+  "benchmark_info": {
+    "suite": "Advanced Benchmark Suite",
+    "start_time": "2025-08-08T00:52:54.335075",
+    "end_time": "2025-08-08T00:55:37.276821",
+    "total_duration": 162.941746,
+    "files_tested": 7
+  },
+  "results": {
+    "cucinare.pl": {
+      "plan_steps": 2.0,
+      "best_time": 0.0911,
+      "avg_time": 0.0982,
+      "worst_time": 0.1189,
+      "successful_planners": 6,
+      "failed_planners": 2,
+      "total_solver_time": 0.589,
+      "step_times": {
+        "extraction": 0.00923,
+        "signatures": 0.00015,
+        "json": 0.00066,
+        "up_code": 0.00025,
+        "pddl": 0.70263,
+        "planning": 0.83326
+      },
+      "total_conversion_time": 1.5461799999999999,
+      "planning_overhead": -0.9571799999999999,
+      "status": "completed",
+      "return_code": 0,
+      "filename": "cucinare.pl",
+      "timestamp": "2025-08-08T00:52:56.865214",
+      "total_execution_time": 2.529350996017456
+    },
+    "cucinare_multistep.pl": {
+      "plan_steps": 20.0,
+      "best_time": 0.2665,
+      "avg_time": 0.9433,
+      "worst_time": 4.0863,
+      "successful_planners": 6,
+      "failed_planners": 2,
+      "total_solver_time": 5.66,
+      "step_times": {
+        "extraction": 0.01621,
+        "signatures": 0.00067,
+        "json": 0.00164,
+        "up_code": 0.00059,
+        "pddl": 0.79021,
+        "planning": 6.2502
+      },
+      "total_conversion_time": 7.05952,
+      "planning_overhead": -1.3995199999999999,
+      "status": "completed",
+      "return_code": 0,
+      "filename": "cucinare_multistep.pl",
+      "timestamp": "2025-08-08T00:53:04.634143",
+      "total_execution_time": 7.7685630321502686
+    },
+    "cucinare_obj_count_scaling.pl": {
+      "plan_steps": 11.0,
+      "best_time": 1.1089,
+      "avg_time": 1.128,
+      "worst_time": 1.1428,
+      "successful_planners": 5,
+      "failed_planners": 3,
+      "total_solver_time": 5.64,
+      "step_times": {
+        "extraction": 0.01493,
+        "signatures": 0.00042,
+        "json": 0.00122,
+        "up_code": 0.00042,
+        "pddl": 0.76822,
+        "planning": 16.83956
+      },
+      "total_conversion_time": 17.624769999999998,
+      "planning_overhead": -11.984769999999997,
+      "status": "completed",
+      "return_code": 0,
+      "filename": "cucinare_obj_count_scaling.pl",
+      "timestamp": "2025-08-08T00:53:22.939312",
+      "total_execution_time": 18.30482316017151
+    },
+    "cucinare_multistep_extreme.pl": {
+      "plan_steps": 43.0,
+      "best_time": 1.597,
+      "avg_time": 1.624,
+      "worst_time": 1.6509,
+      "successful_planners": 2,
+      "failed_planners": 6,
+      "total_solver_time": 3.2479,
+      "step_times": {
+        "extraction": 0.01909,
+        "signatures": 0.00113,
+        "json": 0.00183,
+        "up_code": 0.0013,
+        "pddl": 0.84441,
+        "planning": 26.4849
+      },
+      "total_conversion_time": 27.35266,
+      "planning_overhead": -24.10476,
+      "status": "completed",
+      "return_code": 0,
+      "filename": "cucinare_multistep_extreme.pl",
+      "timestamp": "2025-08-08T00:53:51.146535",
+      "total_execution_time": 28.2068190574646
+    },
+    "cucinare_multistep_mega.pl": {
+      "successful_planners": 0,
+      "failed_planners": 8,
+      "step_times": {
+        "extraction": 0.02546,
+        "signatures": 0.00236,
+        "json": 0.00251,
+        "up_code": 0.00093,
+        "pddl": 1.12861,
+        "planning": 40.0874
+      },
+      "total_conversion_time": 41.24727,
+      "status": "completed",
+      "return_code": 0,
+      "filename": "cucinare_multistep_mega.pl",
+      "timestamp": "2025-08-08T00:54:33.262928",
+      "total_execution_time": 42.115898847579956
+    },
+    "cucinare_object_scaling_extreme.pl": {
+      "successful_planners": 0,
+      "failed_planners": 8,
+      "step_times": {
+        "extraction": 0.02192,
+        "signatures": 0.00095,
+        "json": 0.00211,
+        "up_code": 0.0011,
+        "pddl": 17.36222,
+        "planning": 40.17065
+      },
+      "total_conversion_time": 57.55895,
+      "status": "completed",
+      "return_code": 0,
+      "filename": "cucinare_object_scaling_extreme.pl",
+      "timestamp": "2025-08-08T00:55:32.204240",
+      "total_execution_time": 58.940048933029175
+    },
+    "cucinare_ultimate_stress_test.pl": {
+      "status": "failed",
+      "return_code": 1,
+      "filename": "cucinare_ultimate_stress_test.pl",
+      "timestamp": "2025-08-08T00:55:37.276736",
+      "total_execution_time": 5.0678911209106445
+    }
+  }
+}

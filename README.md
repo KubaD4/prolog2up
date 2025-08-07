@@ -17,22 +17,25 @@
     - [Sezione Prolog](#sezione-prolog)
 - [Convertitore da Prolog a Unified Planning](#convertitore-da-prolog-a-unified-planning)
   - [Architettura e Flusso](#architettura-e-flusso)
+  - [Requisiti e Installazione](#requisiti-e-installazione)
+    - [Prerequisiti di Sistema](#prerequisiti-di-sistema)
+    - [Installazione Virtual Environment](#installazione-virtual-environment)
   - [Utilizzo del Convertitore](#utilizzo-del-convertitore)
     - [Conversione Base](#conversione-base)
     - [Conversione con Pianificazione](#conversione-con-pianificazione)
     - [Output Dettagliato](#output-dettagliato)
-    - [Esempi di Utilizzo](#esempi-di-utilizzo)
+    - [Combinazione di Opzioni](#combinazione-di-opzioni)
   - [File di Output](#file-di-output)
     - [Senza flag --solve](#senza-flag---solve)
     - [Con flag --solve](#con-flag---solve)
     - [Descrizione dei File](#descrizione-dei-file)
   - [Gestione dei Risultati](#gestione-dei-risultati)
-    - [Esempio di planning\_results.txt](#esempio-di-planning_resultstxt)
+  - [Esempi di Output](#esempi-di-output)
+    - [Output Normale (senza --detailed)](#output-normale-senza---detailed)
+    - [Output con --detailed](#output-con---detailed)
   - [Timing delle Performance](#timing-delle-performance)
-  - [Troubleshooting](#troubleshooting)
-    - [Problemi Comuni](#problemi-comuni)
-    - [Dipendenze Necessarie](#dipendenze-necessarie)
-    - [Verifica dell'Installazione](#verifica-dellinstallazione)
+  - [Workflow Completo di Utilizzo](#workflow-completo-di-utilizzo)
+    - [Setup Iniziale (Una volta)](#setup-iniziale-una-volta)
 
 ## Struttura del Progetto
 
@@ -252,7 +255,7 @@ prolog_planner % swipl -l planner.pl -t "plan(4)."
 
 # Convertitore da Prolog a Unified Planning
 
-La sezione del convertitore è stata aggiornata con una nuova struttura modulare che permette di trasformare automaticamente file Prolog in rappresentazioni Python utilizzando il framework Unified Planning, generando anche i relativi file PDDL e, opzionalmente, risolvendo i problemi di pianificazione.
+Permette di trasformare automaticamente file Prolog in rappresentazioni Python utilizzando il framework Unified Planning, generando anche i relativi file PDDL e, opzionalmente, risolvendo i problemi di pianificazione.
 
 ## Architettura e Flusso
 
@@ -268,6 +271,68 @@ Il processo di conversione è ora composto da diversi moduli che lavorano insiem
 Il flusso di conversione è il seguente:
 ```
 File Prolog → Estrazione → JSON → Codice UP → File PDDL → [Pianificazione]
+```
+
+## Requisiti e Installazione
+
+### Prerequisiti di Sistema
+
+1. **Python 3.8+**
+   ```bash
+   python3 --version
+   ```
+
+2. **SWI-Prolog** (necessario per PySwip)
+   ```bash
+   # macOS (usando Homebrew)
+   brew install swi-prolog
+   
+   # Ubuntu/Debian
+   sudo apt-get install swi-prolog
+   
+   # Windows: Scaricare da https://www.swi-prolog.org/download/stable
+   ```
+
+3. **Fast Downward** (per la pianificazione PDDL)
+   ```bash
+   git clone https://github.com/aibasel/downward.git
+   cd downward
+   ./build.py
+   cd ..
+   ```
+
+### Installazione Virtual Environment
+
+
+```bash
+# 1. Creare e attivare virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# oppure su Windows: venv\Scripts\activate
+
+# 2. Installare dipendenze Python dal requirements.txt
+pip3 install -r requirements.txt
+
+### File requirements.txt
+
+Il file `requirements.txt` contiene tutte le dipendenze Python necessarie:
+
+```bash
+# Core dependencies for the PDDL planning system
+unified-planning
+unified-planning[engines]  # Include all planning engines
+
+# For Prolog extraction
+pyswip
+
+# For table formatting and output
+prettytable
+
+# Additional planning engines (optional)
+pyperplan
+
+# For development and testing
+pytest
 ```
 
 ## Utilizzo del Convertitore
@@ -290,24 +355,18 @@ python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve
 
 ### Output Dettagliato
 
-Per un output più dettagliato durante la conversione:
+Per un output più dettagliato durante la conversione (messaggi di debug, analisi fluenti, etc.):
 
 ```bash
-python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve --verbose
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --detailed
 ```
 
-### Esempi di Utilizzo
+### Combinazione di Opzioni
 
 ```bash
-# Converte il dominio della cucina
-python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve
-
-# Converte il mondo dei blocchi con output dettagliato
-python3 CONVERTER/orchestrator.py PROLOG/kb_hl.pl --solve --verbose
-
-# Solo conversione senza pianificazione
-python3 CONVERTER/orchestrator.py PROLOG/kb_hl.pl 
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve --detailed
 ```
+
 
 ## File di Output
 
@@ -317,7 +376,7 @@ Il processo di conversione produce diversi file organizzati in cartelle con time
 ```
 RESULTS/CONVERTER/cucinare_0525_1430/
 ├── extracted_knowledge.json          # Conoscenza strutturata estratta
-├── generated_up.py                   # Codice Python Unified Planning
+├── generated_up.py                   # Codice Python UP
 ├── generated_domain.pddl             # File dominio PDDL
 └── generated_problem.pddl            # File problema PDDL
 ```
@@ -329,7 +388,7 @@ RESULTS/CONVERTER/cucinare_0525_1430/
 ├── generated_up.py                   
 ├── generated_domain.pddl             
 ├── generated_problem.pddl            
-└── planning_results.txt              # Risultati di pianificazione unificati, con tempi per ogni algoritmo
+└── planning_results.txt              # Risultati di pianificazione unificati
 ```
 
 ### Descrizione dei File
@@ -340,90 +399,121 @@ RESULTS/CONVERTER/cucinare_0525_1430/
 | `generated_up.py` | Codice Python che utilizza il framework Unified Planning |
 | `generated_domain.pddl` | File dominio PDDL risultante |
 | `generated_problem.pddl` | File problema PDDL risultante |
-| `planning_results.txt` | Risultati di pianificazione con tabella comparativa e tutti i piani |
+| `planning_results.txt` | Risultati di pianificazione con tabella comparativa e tutti i piani trovati |
 
 ## Gestione dei Risultati
 
 Ogni esecuzione del convertitore crea una cartella con timestamp unico:
 - Formato: `{nome_file}_{MMDD_HHMM}`
 - Esempio: `cucinare_0525_1430` per il file `cucinare.pl` eseguito il 25 maggio alle 14:30
-- Tutti i file correlati sono mantenuti insieme nella stessa cartella
-- Facilita il confronto tra diverse esecuzioni
 
-### Esempio di planning_results.txt
+## Esempi di Output
+
+### Output Normale (senza --detailed)
 
 ```
-Planning Results
-Domain: /path/to/generated_domain.pddl
-Problem: /path/to/generated_problem.pddl
-Generated: 2024-05-25 14:30:45
+=== Prolog to Unified Planning Conversion Pipeline ===
+Input file: PROLOG/cucinare.pl
+Output directory: RESULTS/CONVERTER/cucinare_0730_1430
+SOLVER: enabled
+DETAILS: disabled, use --detailed to enable
 
-===== COMPARISON RESULTS =====
-+---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
-|    Planner    |    Search   | Success | Plan Length | Search Time (s) |    Total Time (s)   | Expanded States |
-+---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
-| fast_downward | lazy_greedy |   Yes   |      3      |      4e-05      | 0.108784           |        3        |
-| fast_downward |   astar_ff  |   Yes   |      3      |     6.1e-05     | 0.085747           |        4        |
-+---------------+-------------+---------+-------------+-----------------+---------------------+-----------------+
+Step 1: Extracting knowledge from Prolog file...
+  Completed in 0.008 seconds
 
-===== PLANS =====
+Step 2: Analyzing fluent signatures...
+  Completed in 0.001 seconds
 
-fast_downward_lazy_greedy plan:
-(cucina mario pasta pentola tavolo)
-(mangia mario pasta)
+Step 3: Converting knowledge to JSON format...
+Step 4: Saving extracted knowledge to JSON...
+  - Saved to: RESULTS/CONVERTER/cucinare_0730_1430/extracted_knowledge.json
+  Completed in 0.001 seconds
 
-fast_downward_astar_ff plan:
-(cucina mario pasta pentola tavolo)
-(mangia mario pasta)
+Step 5: Generating Unified Planning code...
+  - Generated UP code: RESULTS/CONVERTER/cucinare_0730_1430/generated_up.py
+  Completed in 0.495 seconds
+
+Step 6: Executing generated UP code to create PDDL files...
+  - Successfully executed generated UP code
+  Completed in 0.635 seconds
+
+Step 7: Running PDDL solver...
+  - Planning successful! Results saved to planning_results.txt
+  - Planning results:
+    * fast_downward_lazy_greedy:
+      STATUS: Plan found (2 steps)
+      Step  1: (cucina mario pasta pentola tavolo)
+      Step  2: (mangia mario pasta)
+
+    * fast_downward_astar_ff:
+      STATUS: Plan found (2 steps)
+      Step  1: (cucina mario pasta pentola tavolo)
+      Step  2: (mangia mario pasta)
+
+  Completed in 0.156 seconds
+
+=== Conversion Pipeline Completed Successfully ===
+Generated files in: RESULTS/CONVERTER/cucinare_0730_1430
+  - JSON knowledge: extracted_knowledge.json
+  - UP Python code: generated_up.py
+  - PDDL domain: generated_domain.pddl
+  - PDDL problem: generated_problem.pddl
+  - Planning results: planning_results.txt
+
+Total execution time: 1.29615 seconds
+  Step 1 (Extraction): 0.00853s
+  Step 2 (Signatures): 0.00015s
+  Step 3-4 (JSON): 0.00073s
+  Step 5 (UP Code): 0.49463s
+  Step 6 (PDDL): 0.63534s
+  Step 7 (Planning): 0.15677s
 ```
+
+### Output con --detailed
+
+Con il flag `--detailed`, l'output includerà informazioni aggiuntive come:
+- Messaggi di debug con prefisso "DEBUG:"
+- Analisi dettagliata dei fluenti polimorfi
+- Vincoli di tipo per ogni azione
+- Sincronizzazione dell'uso dei fluenti
+- Output completo di tutti i moduli interni
 
 ## Timing delle Performance
 
-L'orchestrator fornisce informazioni dettagliate sui tempi di esecuzione per ogni fase:
+L'orchestrator fornisce informazioni dettagliate sui tempi di esecuzione per ogni fase, permettendo di identificare colli di bottiglia nel processo di conversione:
 
 ```
 Total execution time: 1.30857 seconds
-    Step 1 (Extraction): 0.00788s
-    Step 2 (Signatures): 0.00029s
-    Step 3-4 (JSON): 0.00064s
-    Step 5 (UP Code): 0.46544s
-    Step 6 (PDDL): 0.63290s
-    Step 7 (Planning): 0.20131s
+  Step 1 (Extraction): 0.00788s     # Estrazione da Prolog
+  Step 2 (Signatures): 0.00029s     # Analisi firme fluenti
+  Step 3-4 (JSON): 0.00064s         # Conversione JSON
+  Step 5 (UP Code): 0.46544s        # Generazione codice UP
+  Step 6 (PDDL): 0.63290s           # Creazione file PDDL
+  Step 7 (Planning): 0.20131s       # Pianificazione (se --solve)
 ```
 
-## Troubleshooting
+## Workflow Completo di Utilizzo
 
-Se riscontri errori durante il processo di conversione, ecco alcune soluzioni comuni:
-
-### Problemi Comuni
-
-1. **Fast Downward non trovato**: Assicurati che Fast Downward sia installato e accessibile dal PATH
-2. **Problemi con PySwip**: Verifica che SWI-Prolog sia installato correttamente per PySwip
-3. **Errori di permessi**: Controlla i permessi di scrittura nella directory RESULTS/
-4. **Problemi con i percorsi dei file**: Assicurati di eseguire i comandi dalla directory principale del progetto
-
-### Dipendenze Necessarie
-
-- Python 3.8+
-- Unified Planning library
-- PySwip (per l'analisi Prolog)
-- Fast Downward (per la pianificazione)
-- SWI-Prolog
-
-### Verifica dell'Installazione
+### Setup Iniziale (Una volta)
 
 ```bash
-# Verifica Python
-python3 --version
+# 1. Clone del repository e navigazione
+cd path/to/RoboticsInternship
 
-# Verifica Unified Planning
-python3 -c "import unified_planning; print('UP OK')"
+# 2. Creazione virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-# Verifica PySwip
-python3 -c "from pyswip import Prolog; print('PySwip OK')"
+# 3. Installazione dipendenze Python
+pip3 install -r requirements.txt
 
-# Verifica SWI-Prolog
-swipl --version
+# 4. Installazione SWI-Prolog (sistema)
+brew install swi-prolog  # macOS
+
+# 5. Installazione Fast Downward (opzionale, per planning)
+git clone https://github.com/aibasel/downward.git
+cd downward && ./build.py && cd ..
+
+# 6. Verifica installazione
+python3 -c "import unified_planning; from pyswip import Prolog; print('Setup OK')"
 ```
-
-Per problemi più specifici, utilizzare il flag `--verbose` per ottenere informazioni dettagliate durante l'esecuzione.

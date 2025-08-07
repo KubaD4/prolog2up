@@ -1,87 +1,18 @@
 (define (domain from_prolog-domain)
-  (:requirements :strips :typing :negative-preconditions :existential-preconditions)
-  (:types
-    block pos agent
-  )
-  (:predicates
-    (at_ ?p0 - block ?p1 - pos ?p2 - pos)
-    (available ?p0_0 - agent)
-    (moving_onblock_to_block ?p0_0 - agent ?p1_0 - block ?p2_0 - block ?p3 - pos ?p4 - pos ?p5 - pos ?p6 - pos)
-    (clear ?p0 - block)
-    (ontable ?p0 - block)
-    (moving_table_to_table ?p0_0 - agent ?p1_0 - block ?p2 - pos ?p3 - pos ?p4 - pos ?p5 - pos)
-    (moving_onblock_to_table ?p0_0 - agent ?p1_0 - block ?p2 - pos ?p3 - pos ?p4 - pos ?p5 - pos)
-    (on ?p0 - block ?p1_0 - block)
-    (moving_table_to_block ?p0_0 - agent ?p1_0 - block ?p2_0 - block ?p3 - pos ?p4 - pos ?p5 - pos ?p6 - pos)
-  )
-  (:action move_table_to_table_start
-    :parameters ( ?param1 - agent ?param2 - block ?param3 - pos ?param4 - pos ?param5 - pos ?param6 - pos)
-    :precondition (and (ontable ?param2) (at_ ?param2 ?param3 ?param4) (available ?param1) (clear ?param2) (not (exists
-          (?any_move_table_to_table_start_0 - block)
-          (at_ ?any_move_table_to_table_start_0 ?param5 ?param6))) (not (exists
-          (?any_move_table_to_table_start_1 - block)
-          (on ?param2 ?any_move_table_to_table_start_1))) (not (exists
-          (?any_move_table_to_table_start_3 - pos ?any_move_table_to_table_start_2 - pos ?any_move_table_to_table_start_5 - pos ?any_move_table_to_table_start_4 - pos ?any_move_table_to_table_start_0_0 - agent)
-          (moving_table_to_table ?any_move_table_to_table_start_0_0 ?param2 ?any_move_table_to_table_start_2 ?any_move_table_to_table_start_3 ?any_move_table_to_table_start_4 ?any_move_table_to_table_start_5))) (not (exists
-          (?any_move_table_to_table_start_3 - pos ?any_move_table_to_table_start_2_0 - block ?any_move_table_to_table_start_6 - pos ?any_move_table_to_table_start_5 - pos ?any_move_table_to_table_start_4 - pos ?any_move_table_to_table_start_0_0 - agent)
-          (moving_table_to_block ?any_move_table_to_table_start_0_0 ?param2 ?any_move_table_to_table_start_2_0 ?any_move_table_to_table_start_3 ?any_move_table_to_table_start_4 ?any_move_table_to_table_start_5 ?any_move_table_to_table_start_6))))
-    :effect (and (not (available ?param1)) (not (clear ?param2)) (not (ontable ?param2)) (not (at_ ?param2 ?param3 ?param4)) (moving_table_to_table ?param1 ?param2 ?param3 ?param4 ?param5 ?param6))
-  )
-  (:action move_table_to_table_end
-    :parameters ( ?param1 - agent ?param2 - block ?param3 - pos ?param4 - pos ?param5 - pos ?param6 - pos)
-    :precondition (and (moving_table_to_table ?param1 ?param2 ?param3 ?param4 ?param5 ?param6) (not (exists
-          (?any_move_table_to_table_end_0 - block)
-          (at_ ?any_move_table_to_table_end_0 ?param5 ?param6))))
-    :effect (and (not (moving_table_to_table ?param1 ?param2 ?param3 ?param4 ?param5 ?param6)) (ontable ?param2) (at_ ?param2 ?param5 ?param6) (clear ?param2) (available ?param1))
-  )
-  (:action move_table_to_block_start
-    :parameters ( ?param1 - agent ?param2 - block ?param3_0 - block ?param4 - pos ?param5 - pos ?param6 - pos ?param7 - pos)
-    :precondition (and (available ?param1) (ontable ?param2) (at_ ?param2 ?param4 ?param5) (at_ ?param3_0 ?param6 ?param7) (clear ?param3_0) (clear ?param2) (not (exists
-          (?any_move_table_to_block_start_0 - block)
-          (on ?any_move_table_to_block_start_0 ?param2))) (not (exists
-          (?any_move_table_to_block_start_1 - block)
-          (on ?param2 ?any_move_table_to_block_start_1))) (not (exists
-          (?any_move_table_to_block_start_5 - pos ?any_move_table_to_block_start_3 - pos ?any_move_table_to_block_start_4 - pos ?any_move_table_to_block_start_0_0 - agent ?any_move_table_to_block_start_2 - pos)
-          (moving_table_to_table ?any_move_table_to_block_start_0_0 ?param2 ?any_move_table_to_block_start_2 ?any_move_table_to_block_start_3 ?any_move_table_to_block_start_4 ?any_move_table_to_block_start_5))) (not (exists
-          (?any_move_table_to_block_start_5 - pos ?any_move_table_to_block_start_3 - pos ?any_move_table_to_block_start_4 - pos ?any_move_table_to_block_start_0_0 - agent ?any_move_table_to_block_start_2_0 - block ?any_move_table_to_block_start_6 - pos)
-          (moving_table_to_block ?any_move_table_to_block_start_0_0 ?param2 ?any_move_table_to_block_start_2_0 ?any_move_table_to_block_start_3 ?any_move_table_to_block_start_4 ?any_move_table_to_block_start_5 ?any_move_table_to_block_start_6))))
-    :effect (and (not (available ?param1)) (not (clear ?param2)) (not (ontable ?param2)) (not (at_ ?param2 ?param4 ?param5)) (moving_table_to_block ?param1 ?param2 ?param3_0 ?param4 ?param5 ?param6 ?param7))
-  )
-  (:action move_table_to_block_end
-    :parameters ( ?param1 - agent ?param2 - block ?param3_0 - block ?param4 - pos ?param5 - pos ?param6 - pos ?param7 - pos)
-    :precondition (and (moving_table_to_block ?param1 ?param2 ?param3_0 ?param4 ?param5 ?param6 ?param7) (clear ?param3_0))
-    :effect (and (not (clear ?param3_0)) (not (moving_table_to_block ?param1 ?param2 ?param3_0 ?param4 ?param5 ?param6 ?param7)) (on ?param2 ?param3_0) (at_ ?param2 ?param6 ?param7) (clear ?param2) (available ?param1))
-  )
-  (:action move_onblock_to_table_start
-    :parameters ( ?param1 - agent ?param2 - block ?param3 - pos ?param4 - pos ?param5 - pos ?param6 - pos ?param7_0 - block)
-    :precondition (and (available ?param1) (on ?param2 ?param7_0) (at_ ?param2 ?param3 ?param4) (at_ ?param7_0 ?param3 ?param4) (clear ?param2) (not (exists
-          (?any_move_onblock_to_table_start_2 - pos ?any_move_onblock_to_table_start_0 - agent ?any_move_onblock_to_table_start_5 - pos ?any_move_onblock_to_table_start_4 - pos ?any_move_onblock_to_table_start_3 - pos)
-          (moving_onblock_to_table ?any_move_onblock_to_table_start_0 ?param2 ?any_move_onblock_to_table_start_2 ?any_move_onblock_to_table_start_3 ?any_move_onblock_to_table_start_4 ?any_move_onblock_to_table_start_5))) (not (exists
-          (?any_move_onblock_to_table_start_0_0 - block)
-          (on ?any_move_onblock_to_table_start_0_0 ?param2))) (not (ontable ?param2)) (not (exists
-          (?any_move_onblock_to_table_start_0_0 - block)
-          (at_ ?any_move_onblock_to_table_start_0_0 ?param5 ?param6))))
-    :effect (and (not (available ?param1)) (not (clear ?param2)) (not (on ?param2 ?param7_0)) (not (at_ ?param2 ?param3 ?param4)) (moving_onblock_to_table ?param1 ?param2 ?param3 ?param4 ?param5 ?param6) (clear ?param7_0))
-  )
-  (:action move_onblock_to_table_end
-    :parameters ( ?param1 - agent ?param2 - block ?param3 - pos ?param4 - pos ?param5 - pos ?param6 - pos)
-    :precondition (and (moving_onblock_to_table ?param1 ?param2 ?param3 ?param4 ?param5 ?param6) (not (exists
-          (?any_move_onblock_to_table_end_0 - block)
-          (at_ ?any_move_onblock_to_table_end_0 ?param5 ?param6))))
-    :effect (and (not (moving_onblock_to_table ?param1 ?param2 ?param3 ?param4 ?param5 ?param6)) (ontable ?param2) (at_ ?param2 ?param5 ?param6) (clear ?param2) (available ?param1))
-  )
-  (:action move_onblock_to_block_start
-    :parameters ( ?param1 - agent ?param2 - block ?param3_0 - block ?param4 - pos ?param5 - pos ?param6 - pos ?param7 - pos)
-    :precondition (and (available ?param1) (on ?param2 ?param3_0) (at_ ?param2 ?param4 ?param5) (at_ ?param3_0 ?param6 ?param7) (clear ?param3_0) (clear ?param2) (not (exists
-          (?any_move_onblock_to_block_start_2 - block ?any_move_onblock_to_block_start_6 - pos ?any_move_onblock_to_block_start_3 - pos ?any_move_onblock_to_block_start_4 - pos ?any_move_onblock_to_block_start_5 - pos ?any_move_onblock_to_block_start_0 - agent)
-          (moving_onblock_to_block ?any_move_onblock_to_block_start_0 ?param2 ?any_move_onblock_to_block_start_2 ?any_move_onblock_to_block_start_3 ?any_move_onblock_to_block_start_4 ?any_move_onblock_to_block_start_5 ?any_move_onblock_to_block_start_6))) (not (exists
-          (?any_move_onblock_to_block_start_0_0 - block)
-          (on ?any_move_onblock_to_block_start_0_0 ?param2))) (not (ontable ?param2)))
-    :effect (and (not (available ?param1)) (not (clear ?param2)) (not (on ?param2 ?param3_0)) (not (at_ ?param2 ?param4 ?param5)) (moving_onblock_to_block ?param1 ?param2 ?param3_0 ?param4 ?param5 ?param6 ?param7) (clear ?param3_0))
-  )
-  (:action move_onblock_to_block_end
-    :parameters ( ?param1 - agent ?param2 - block ?param3_0 - block ?param4 - pos ?param5 - pos ?param6 - pos ?param7 - pos)
-    :precondition (and (moving_onblock_to_block ?param1 ?param2 ?param3_0 ?param4 ?param5 ?param6 ?param7) (clear ?param3_0))
-    :effect (and (not (clear ?param3_0)) (not (moving_onblock_to_block ?param1 ?param2 ?param3_0 ?param4 ?param5 ?param6 ?param7)) (on ?param2 ?param3_0) (at_ ?param2 ?param6 ?param7) (clear ?param2) (available ?param1))
-  )
+ (:requirements :strips :typing :negative-preconditions :existential-preconditions)
+ (:types cibo strumento cuoco piano)
+ (:predicates (cotto ?p0 - cibo) (crudo ?p0 - cibo) (disponibile ?p0 - strumento) (ha_fame ?p0 - cuoco) (pieno ?p0 - piano) (soddisfatto ?p0 - cuoco) (su ?p0 - piano ?p1 - strumento) (vuoto ?p0 - piano))
+ (:action cucina
+  :parameters ( ?Param1 - cuoco ?Param2 - cibo ?Param3 - strumento ?Param4 - piano)
+  :precondition (and (crudo ?Param2) (disponibile ?Param3) (vuoto ?Param4))
+  :effect (and (not (crudo ?Param2)) (not (vuoto ?Param4)) (cotto ?Param2) (pieno ?Param4)))
+ (:action mangia
+  :parameters ( ?Param1 - cuoco ?Param2 - cibo)
+  :precondition (and (cotto ?Param2) (ha_fame ?Param1))
+  :effect (and (not (ha_fame ?Param1)) (soddisfatto ?Param1)))
+ (:action sposta_qualsiasi
+  :parameters ( ?Param1 - cuoco ?Param2 - strumento ?Param3 - piano)
+  :precondition (and (disponibile ?Param2) (vuoto ?Param3) (not (exists (?any_sposta_qualsiasi_0 - piano)
+ (su ?any_sposta_qualsiasi_0 ?Param2))))
+  :effect (and (not (disponibile ?Param2)) (not (vuoto ?Param3)) (su ?Param3 ?Param2)))
 )

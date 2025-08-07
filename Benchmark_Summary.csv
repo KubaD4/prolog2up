@@ -1,0 +1,7 @@
+Prolog File,Best Time (s),Average Time (s),Worst Time (s),Lines,Predicates
+cucinare.pl,0.0845,0.0891,0.1025,49,21
+cucinare_bottleneck_1.pl,0.1007,0.1067,0.1273,63,28
+cucinare_bottleneck_2.pl,0.1128,0.12,0.1393,95,33
+cucinare_bottleneck_3.pl,0.1514,0.1596,0.1766,112,37
+cucinare_extended.pl,0.1292,0.4312,1.8924,91,39
+cucinare_multistep.pl,0.2787,0.9284,4.0199,120,40

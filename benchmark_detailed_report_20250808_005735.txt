@@ -1,0 +1,50 @@
+ADVANCED BENCHMARK DETAILED REPORT
+==================================================
+
+SUMMARY STATISTICS
+--------------------
+Total benchmarks completed: 6
+Average planning time: 0.632s
+Average plan length: 12.7 steps
+Average success rate: 39.6%
+
+PERFORMANCE RANKINGS
+--------------------
+Fastest (by avg planning time):
+  1. cucinare_multistep_mega.pl: 0.000s (0.0 steps)
+  2. cucinare_object_scaling_extreme.pl: 0.000s (0.0 steps)
+  3. cucinare.pl: 0.098s (2.0 steps)
+
+Most efficient (time per step):
+  1. cucinare_multistep_mega.pl: 0.0000s/step (0.0 steps)
+  2. cucinare_object_scaling_extreme.pl: 0.0000s/step (0.0 steps)
+  3. cucinare_multistep_extreme.pl: 0.0378s/step (43.0 steps)
+
+SCALING ANALYSIS
+---------------
+Correlation plan_steps vs avg_time: 0.913
+Correlation complexity vs avg_time: 0.019
+
+Growth vs baseline (cucinare.pl):
+  cucinare_multistep_extreme.pl: 16.5x slower
+  cucinare_obj_count_scaling.pl: 11.5x slower
+  cucinare_multistep.pl: 9.6x slower
+  cucinare_multistep_mega.pl: 0.0x slower
+
+DETAILED RESULTS TABLE
+----------------------
+Filename                            Time     Steps  Success% Efficiency 
+----------------------------------------------------------------------
+cucinare.pl                         0.098    2      75.0     0.0491     
+cucinare_multistep.pl               0.943    20     75.0     0.0472     
+cucinare_obj_count_scaling.pl       1.128    11     62.5     0.1025     
+cucinare_multistep_extreme.pl       1.624    43     25.0     0.0378     
+cucinare_multistep_mega.pl          0.000    0      0.0      0.0000     
+cucinare_object_scaling_extreme.pl  0.000    0      0.0      0.0000     
+
+RECOMMENDATIONS
+---------------
+⚠️  Some benchmarks have <50% success rate - investigate algorithm robustness
+⚠️  Large efficiency variation detected - analyze complexity factors
+
+End of report.
