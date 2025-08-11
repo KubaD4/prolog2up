@@ -1,14 +1,6 @@
 % STRESS TEST 1: Object Count Scaling
 % Testa il scaling lineare con molti più oggetti dello stesso tipo
-% Total execution time: 3.99456 seconds, 3.8
 
-/* Total execution time: 3.88023 seconds
-  Step 1 (Extraction): 0.01335s
-  Step 2 (Signatures): 0.00042s
-  Step 3-4 (JSON): 0.00121s
-  Step 5 (UP Code): 0.79689s
-  Step 6 (PDDL): 0.75551s
-  Step 7 (Planning): 2.31251s */
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % kb
