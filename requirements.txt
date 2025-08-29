@@ -1,0 +1,27 @@
+# ===== CORE PLANNING LIBRARIES =====
+unified-planning[engines]>=1.1.0
+# Include planners integrati (Fast Downward, etc.)
+
+# ===== DATA ANALYSIS & VISUALIZATION =====  
+matplotlib>=3.7.0
+seaborn>=0.13.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# ===== ADDITIONAL SCIENTIFIC COMPUTING =====
+scipy>=1.10.0
+scikit-learn>=1.3.0
+
+# ===== FILE HANDLING & UTILITIES =====
+pathlib2>=2.3.7  # Per compatibilità cross-platform
+argparse  # Usually built-in, but explicit
+statistics  # Usually built-in
+
+# ===== OPTIONAL BUT RECOMMENDED =====
+jupyter>=1.0.0  # Per analisi interattiva
+jupyterlab>=4.0.0
+ipython>=8.0.0
+
+# ===== DEVELOPMENT & TESTING =====
+pytest>=7.0.0  # Se vuoi testare
+black>=23.0.0   # Code formatting

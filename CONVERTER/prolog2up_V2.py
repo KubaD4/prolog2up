@@ -783,10 +783,10 @@ def generate_up_code(knowledge, out_dir):
         wp("")
 
     # 11) Export PDDL
-    wp("writer = PDDLWriter(problem)")
-    wp("writer.write_domain('generated_domain.pddl')")
-    wp("writer.write_problem('generated_problem.pddl')")
-    wp("print('Generated PDDL files in current directory')")
+    # wp("writer = PDDLWriter(problem)")
+    # wp("writer.write_domain('generated_domain.pddl')")
+    # wp("writer.write_problem('generated_problem.pddl')")
+    # wp("print('Generated PDDL files in current directory')")
 
     return "\n".join(lines)
 

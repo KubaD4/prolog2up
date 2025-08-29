@@ -422,49 +422,52 @@ def main():
         
         # Step 6: Execute generated UP code to create PDDL files
         print("\nStep 6: Executing generated UP code to create PDDL files...")
-        step6_start = time.time()
         
-        # Try normal execution
-        try:
-            # Execute generated file
-            result = subprocess.run([
-                sys.executable, "generated_up.py"
-            ], capture_output=True, text=True, cwd=output_dir)
-            
-            if result.returncode == 0:
-                print("  - Successfully executed generated UP code")
-                if args.detailed and result.stdout:
-                    print(f"  - Output: {result.stdout.strip()}")
-            else:
-                print(f"  - Error executing generated UP code:")
-                if result.stderr:
-                    print(f"    {result.stderr.strip()}")
-                if result.stdout:
-                    print(f"    {result.stdout.strip()}")
-                raise Exception("UP code execution failed")
-        except Exception as e:
-            print(f"  - Exception while executing generated UP code: {e}")
-            
-            print("  - Trying fallback execution method...")
-            try:
-                original_cwd = os.getcwd()
-                os.chdir(output_dir)
-                
-                # Dynamic import and execution
-                import importlib.util
-                spec = importlib.util.spec_from_file_location("generated_up", "generated_up.py")
-                generated_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(generated_module)
-                
-                print("  - Fallback execution successful")
-            except Exception as fallback_e:
-                print(f"  - Fallback execution also failed: {fallback_e}")
-                raise fallback_e
-            finally:
-                os.chdir(original_cwd)
+        # step6_start = time.time()
         
-        step6_time = time.time() - step6_start
-        print(f"  Completed in {step6_time:.3f} seconds")
+        # # Try normal execution
+        # try:
+        #     # Execute generated file
+        #     result = subprocess.run([
+        #         sys.executable, "generated_up.py"
+        #     ], capture_output=True, text=True, cwd=output_dir)
+            
+        #     if result.returncode == 0:
+        #         print("  - Successfully executed generated UP code")
+        #         if args.detailed and result.stdout:
+        #             print(f"  - Output: {result.stdout.strip()}")
+        #     else:
+        #         print(f"  - Error executing generated UP code:")
+        #         if result.stderr:
+        #             print(f"    {result.stderr.strip()}")
+        #         if result.stdout:
+        #             print(f"    {result.stdout.strip()}")
+        #         raise Exception("UP code execution failed")
+        # except Exception as e:
+        #     print(f"  - Exception while executing generated UP code: {e}")
+            
+        #     print("  - Trying fallback execution method...")
+        #     try:
+        #         original_cwd = os.getcwd()
+        #         os.chdir(output_dir)
+                
+        #         # Dynamic import and execution
+        #         import importlib.util
+        #         spec = importlib.util.spec_from_file_location("generated_up", "generated_up.py")
+        #         generated_module = importlib.util.module_from_spec(spec)
+        #         spec.loader.exec_module(generated_module)
+                
+        #         print("  - Fallback execution successful")
+        #     except Exception as fallback_e:
+        #         print(f"  - Fallback execution also failed: {fallback_e}")
+        #         raise fallback_e
+        #     finally:
+        #         os.chdir(original_cwd)
+        
+        # step6_time = time.time() - step6_start
+        # print(f"  Completed in {step6_time:.3f} seconds")
+        print("\nStep 6: Skipping PDDL generation (commented for benchmarks)")
+        step6_time = 0.0
         
         # Step 7: Planning (if requested)
         if args.solve:
