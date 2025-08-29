@@ -1,299 +1,65 @@
-# RoboticsInternship
+# Prolog2UP: Prolog to Unified Planning Converter
 
-## Indice
-- [RoboticsInternship](#roboticsinternship)
-  - [Indice](#indice)
-  - [Struttura del Progetto](#struttura-del-progetto)
-- [Prolog, PDDL e Unified Planning](#prolog-pddl-e-unified-planning)
-  - [Requisiti](#requisiti)
-    - [Requisiti Generali](#requisiti-generali)
-    - [Requisiti per la Sezione PDDL](#requisiti-per-la-sezione-pddl)
-    - [Requisiti per Unified Planning](#requisiti-per-unified-planning)
-    - [Requisiti per Prolog](#requisiti-per-prolog)
-    - [Requisiti per il Convertitore](#requisiti-per-il-convertitore)
-  - [Utilizzo](#utilizzo)
-    - [Sezione PDDL](#sezione-pddl)
-    - [Sezione Unified Planning](#sezione-unified-planning)
-    - [Sezione Prolog](#sezione-prolog)
-- [Convertitore da Prolog a Unified Planning](#convertitore-da-prolog-a-unified-planning)
-  - [Architettura e Flusso](#architettura-e-flusso)
-  - [Requisiti e Installazione](#requisiti-e-installazione)
-    - [Prerequisiti di Sistema](#prerequisiti-di-sistema)
-    - [Installazione Virtual Environment](#installazione-virtual-environment)
-  - [Utilizzo del Convertitore](#utilizzo-del-convertitore)
-    - [Conversione Base](#conversione-base)
-    - [Conversione con Pianificazione](#conversione-con-pianificazione)
-    - [Output Dettagliato](#output-dettagliato)
-    - [Combinazione di Opzioni](#combinazione-di-opzioni)
-  - [File di Output](#file-di-output)
-    - [Senza flag --solve](#senza-flag---solve)
-    - [Con flag --solve](#con-flag---solve)
-    - [Descrizione dei File](#descrizione-dei-file)
-  - [Gestione dei Risultati](#gestione-dei-risultati)
-  - [Esempi di Output](#esempi-di-output)
-    - [Output Normale (senza --detailed)](#output-normale-senza---detailed)
-    - [Output con --detailed](#output-con---detailed)
-  - [Timing delle Performance](#timing-delle-performance)
-  - [Workflow Completo di Utilizzo](#workflow-completo-di-utilizzo)
-    - [Setup Iniziale (Una volta)](#setup-iniziale-una-volta)
+An automated pipeline for translating Prolog knowledge bases to Unified Planning models with PDDL export capabilities. This name-agnostic translation framework implements a three-phase pipeline (extraction, JSON intermediate representation, UP code generation) for converting logic programming knowledge bases into solver-agnostic planning models.
 
-## Struttura del Progetto
+## Table of Contents
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Output Structure](#output-structure)
+- [Configuration](#configuration)
+- [Examples](#examples)
+- [Project Structure](#project-structure)
 
-La cartella è organizzata come segue:
+## Overview
+
+**Prolog2UP** bridges the gap between logic programming (Prolog) and modern automated planning by providing:
+
+- **Name-agnostic translation**: No hard-coded predicate/action names or domain-specific rules
+- **Lossless intermediate representation**: JSON format preserves structural information
+- **Solver-agnostic output**: Generates both Unified Planning models and PDDL files
+- **Deterministic code generation**: Identical inputs produce identical outputs
+- **Performance monitoring**: Detailed timing analysis for each pipeline stage
+- **Extensible architecture**: JSON layer enables future back-ends without modifying extraction
+
+## Architecture
+
+The conversion pipeline consists of 7 steps:
+
 ```
-.
-├── CONVERTER
-│   ├── __pycache__
-│   │   ├── kb_to_json.cpython-311.pyc
-│   │   ├── prolog_extractor.cpython-311.pyc
-│   │   └── prolog2up_V2.cpython-311.pyc
-│   ├── from_prolog_to_up.py
-│   ├── kb_to_json.py
-│   ├── orchestrator.py
-│   ├── prolog_extractor.py
-│   └── prolog2up_V2.py
-├── PDDL
-│   ├── domain_a_mano.pddl
-│   ├── problem_a_mano.pddl
-│   └── run_plan.py
-├── PROLOG
-│   ├── cucinare.pl
-│   ├── entrare.pl
-│   ├── kb_hl.pl
-│   ├── medic.pl
-│   └── small_kb_hl.pl
-├── README.md
-├── RESULTS
-│   ├── CONVERTER
-│   │   └── cucinare_0525_1430          # Cartelle con timestamp
-│   │       ├── extracted_knowledge.json
-│   │       ├── generated_up.py
-│   │       ├── generated_domain.pddl
-│   │       ├── generated_problem.pddl
-│   │       └── planning_results.txt    # (se usato --solve)
-│   ├── PDDL
-│   │   └── problem_a_mano_0506_12:16
-│   │       ├── best_solution_summary.txt
-│   │       ├── comparison_report.txt
-│   │       ├── comparison_results.csv
-│   │       ├── detailed_results.json
-│   │       ├── domain_a_mano.pddl
-│   │       ├── fd_astar_ff_output.txt
-│   │       ├── fd_astar_ff_plan.txt
-│   │       ├── fd_lazy_greedy_output.txt
-│   │       ├── fd_lazy_greedy_plan.txt
-│   │       └── problem_a_mano.pddl
-│   └── UP
-└── UNIFIED_PLANNING
-    ├── blocks_domain.pddl
-    ├── blocks_problem.pddl
-    ├── cucinare.py
-    ├── kb_hl_old.py
-    ├── kb_hl.py
-    ├── quickstart.py
-    └── test.py
+Prolog File → Extraction → JSON → UP Code → PDDL Files → [Planning]
 ```
 
-# Prolog, PDDL e Unified Planning
+1. **Extraction**: Parse Prolog knowledge base structure
+2. **Signature Analysis**: Analyze fluent signatures and types  
+3. **JSON Conversion**: Create intermediate representation
+4. **JSON Storage**: Save structured knowledge
+5. **UP Code Generation**: Generate Python Unified Planning code
+6. **PDDL Export**: Execute generated code to create PDDL files
+7. **Planning** (optional): Solve generated planning problems
 
-## Requisiti
+## Installation
 
-### Requisiti Generali
+### Prerequisites
 
 1. **Python 3.8+**
    ```bash
-   # Verifica la tua versione di Python
    python3 --version
    ```
 
-2. **Visual Studio Code**
-   - Come IDE ho scelto Visual Studio Code
-   - Estensioni consigliate:
-     - Estensione Python 
-     - Estensione Prolog (se si vuole usare il Prolog)
-     - PDDL https://marketplace.visualstudio.com/items?itemName=jan-dolejsi.pddl
-
-### Requisiti per la Sezione PDDL
-
-1. **Dipendenze Python**
+2. **SWI-Prolog** (required for PySwip)
    ```bash
-   pip3 install prettytable
-   ```
-
-2. **Pianificatore PyPerplan** 
-   ```bash
-   pip3 install pyperplan
-   ```
-
-3. **Pianificatore Fast Downward** (più avanzato)
-   ```bash
-   # Clona il repository Fast Downward
-   git clone https://github.com/aibasel/downward.git
-   cd downward
-   ./build.py
-   cd ..
-   ```
-
-### Requisiti per Unified Planning
-
-[Documentazione Unified Planning](https://unified-planning.readthedocs.io/en/latest/getting_started.html)
-
-1. **Installa il pacchetto unified_planning**
-   ```bash
-   pip3 install unified-planning
-   ```
-
-2. **Installa i motori di pianificazione**
-   ```bash
-   # Installa *tutti* i motori di base
-   pip3 install unified-planning[engines]
-   
-   # Oppure installa motori specifici, ad esempio:
-   pip3 install unified-planning[pyperplan]
-   pip3 install unified-planning[tamer]
-   pip3 install unified-planning[enhsp]
-   ```
-   
-   - [elenco completo dei motori disponibili per Unified Planning](https://unified-planning.readthedocs.io/en/latest/engines/01_available_engines.html)
-
-
-### Requisiti per Prolog
-
-Per la sezione Prolog, fare riferimento al [repository PLANTOR](https://github.com/idra-lab/PLANTOR) per istruzioni dettagliate sull'installazione. Come minimo, servirà:
-
-1. **SWI-Prolog**
-   ```bash
-   # Per macOS (usando Homebrew)
+   # macOS (using Homebrew)
    brew install swi-prolog
    
-   # Per Ubuntu/Debian
-   sudo apt-get install swi-prolog
-   ```
-
-### Requisiti per il Convertitore
-
-1. **Python 3.8+**
-   ```bash
-   # Verifica la tua versione di Python
-   python3 --version
-   ```
-
-2. **Unified Planning**
-   ```bash
-   pip3 install unified-planning
-   pip3 install unified-planning[engines]
-   ```
-
-3. **Pyswip** (interfaccia Python per SWI-Prolog)
-   ```bash
-   pip3 install pyswip
-   ```
-
-4. **SWI-Prolog** (come indicato nella sezione Prolog)
-
-## Utilizzo
-
-### Sezione PDDL
-
-La sezione PDDL contiene file di dominio e problema scritti manualmente insieme a uno script Python per trovare piani.
-
-1. **Esecuzione con algoritmo di ricerca predefinito**
-   ```bash
-   python3 PDDL/run_plan.py PDDL/domain_a_mano.pddl PDDL/problem_a_mano.pddl
-   ```
-
-2. **Esecuzione con algoritmi di ricerca specifici**
-   ```bash
-   # python3 PDDL/run_plan.py PDDL/domain_a_mano.pddl PDDL/problem_a_mano.pddl --searches algoritmo1 algoritmo2...
-   python3 PDDL/run_plan.py PDDL/domain_a_mano.pddl PDDL/problem_a_mano.pddl --searches lazy_greedy eager_greedy astar_ff astar_lmcount wastar astar_blind astar_lmcut lazy_wastar
-   ```
-
-Lo script creerà una directory con i risultati, incluso il piano trovato, le statistiche di esecuzione e i rapporti di confronto tra diversi algoritmi di ricerca.
-
-### Sezione Unified Planning
-
-Questa sezione utilizza il framework Unified Planning per creare e risolvere problemi di pianificazione e generare file PDDL. 
-
-1. **Esecuzione dell'esempio dei blocchi**
-   ```bash
-   python3 UNIFIED_PLANNING/kb_hl.py
-   ```
-   Questo script:
-   - Definisce un problema del mondo dei blocchi
-   - Genera file PDDL (blocks_domain.pddl e blocks_problem.pddl)
-   - Utilizza un motore appropriato (scelto automaticamente dal framework) per trovare una soluzione
-
-2. **Esecuzione dell'esempio quickstart**
-
-    Un piccolo esempio creato a partire dal tutorial seguito dalla documentazione ufficiale.
-   ```bash
-   python3 UNIFIED_PLANNING/quickstart.py
-   ```
-
-Il framework Unified Planning seleziona automaticamente un motore di pianificazione appropriato in base alle caratteristiche del problema, ma si può anche specificare quale motore utilizzare.
-
-**Importante**: Alla fine del file kb_hl.py ci sono due chiamate di funzione:
-```python
-export_to_pddl()  # Genera i file PDDL
-solve_problem()   # Risolve il problema
-```
-Commentare una delle due linee in base a ciò che desideri fare:
-
-- Generare i file PDDL senza risolvere il problema, commentare solve_problem()
-- Risolvere il problema senza generare i file PDDL, commentare export_to_pddl()
-- O lasciare entrambi scommentati 
-
-### Sezione Prolog
-
-La sezione Prolog contiene un file di knowledge base preso dal progetto PLANTOR.
-
-Per istruzioni dettagliate su come utilizzare questo file con il framework PLANTOR, fare riferimento al [repository PLANTOR](https://github.com/idra-lab/PLANTOR).
-
-```bash
-prolog_planner % swipl -l planner.pl -t "plan(4)."
-```
-
-# Convertitore da Prolog a Unified Planning
-
-Permette di trasformare automaticamente file Prolog in rappresentazioni Python utilizzando il framework Unified Planning, generando anche i relativi file PDDL e, opzionalmente, risolvendo i problemi di pianificazione.
-
-## Architettura e Flusso
-
-Il processo di conversione è ora composto da diversi moduli che lavorano insieme:
-
-1. **orchestrator.py**: Coordina l'intero processo di conversione
-2. **prolog_extractor.py**: Estrae la conoscenza dai file Prolog
-3. **kb_to_json.py**: Converte la conoscenza estratta in formato JSON strutturato
-4. **prolog2up_V2.py**: Genera il codice Python Unified Planning dal JSON
-5. **generated_up.py**: Il codice Python risultante che crea i file PDDL
-6. **run_plan.py**: (Opzionale) Risolve i problemi PDDL generati
-
-Il flusso di conversione è il seguente:
-```
-File Prolog → Estrazione → JSON → Codice UP → File PDDL → [Pianificazione]
-```
-
-## Requisiti e Installazione
-
-### Prerequisiti di Sistema
-
-1. **Python 3.8+**
-   ```bash
-   python3 --version
-   ```
-
-2. **SWI-Prolog** (necessario per PySwip)
-   ```bash
-   # macOS (usando Homebrew)
-   brew install swi-prolog
-   
-   # Ubuntu/Debian
+   # Ubuntu/Debian  
    sudo apt-get install swi-prolog
    
-   # Windows: Scaricare da https://www.swi-prolog.org/download/stable
+   # Windows: Download from https://www.swi-prolog.org/download/stable
    ```
 
-3. **Fast Downward** (per la pianificazione PDDL)
+3. **Fast Downward** (optional, for enhanced planning)
    ```bash
    git clone https://github.com/aibasel/downward.git
    cd downward
@@ -301,141 +67,146 @@ File Prolog → Estrazione → JSON → Codice UP → File PDDL → [Pianificazi
    cd ..
    ```
 
-### Installazione Virtual Environment
-
+### Setup
 
 ```bash
-# 1. Creare e attivare virtual environment
+# 1. Clone and navigate to repository
+cd path/to/prolog2up
+
+# 2. Create virtual environment
 python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
-# oppure su Windows: venv\Scripts\activate
+# venv\Scripts\activate   # Windows
 
-# 2. Installare dipendenze Python dal requirements.txt
-pip3 install -r requirements.txt
+# 3. Install dependencies
+pip install -r CONVERTER/requirements.txt
 
-### File requirements.txt
-
-Il file `requirements.txt` contiene tutte le dipendenze Python necessarie:
-
-```bash
-# Core dependencies for the PDDL planning system
-unified-planning
-unified-planning[engines]  # Include all planning engines
-
-# For Prolog extraction
-pyswip
-
-# For table formatting and output
-prettytable
-
-# Additional planning engines (optional)
-pyperplan
-
-# For development and testing
-pytest
+# 4. Verify installation
+python3 -c "import unified_planning; from pyswip import Prolog; print('Setup successful!')"
 ```
 
-## Utilizzo del Convertitore
+### Dependencies
 
-### Conversione Base
+Core dependencies (from `requirements.txt`):
+```
+unified-planning[engines]  # Planning framework and engines
+pyswip                     # Python-SWI-Prolog interface  
+prettytable               # Output formatting
+```
 
-Per convertire un file Prolog in formato PDDL:
+## Usage
+
+### Basic Conversion
+
+Convert a Prolog knowledge base to PDDL format:
 
 ```bash
 python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl
 ```
 
-### Conversione con Pianificazione
+### Conversion with Planning
 
-Per convertire E risolvere automaticamente il problema di pianificazione:
+Convert and automatically solve the planning problem:
 
 ```bash
 python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve
 ```
 
-### Output Dettagliato
+### Detailed Output
 
-Per un output più dettagliato durante la conversione (messaggi di debug, analisi fluenti, etc.):
+Get verbose debug information and detailed analysis:
 
 ```bash
 python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --detailed
 ```
 
-### Combinazione di Opzioni
+### Plan Display Options
+
+Control how planning results are shown:
 
 ```bash
-python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve --detailed
+# Show complete plans (all steps)
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve --show-full-plans
+
+# Hide plan steps (only status and timing)  
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve --hide-plans
 ```
 
+### Combined Options
 
-## File di Output
-
-Il processo di conversione produce diversi file organizzati in cartelle con timestamp:
-
-### Senza flag --solve
-```
-RESULTS/CONVERTER/cucinare_0525_1430/
-├── extracted_knowledge.json          # Conoscenza strutturata estratta
-├── generated_up.py                   # Codice Python UP
-├── generated_domain.pddl             # File dominio PDDL
-└── generated_problem.pddl            # File problema PDDL
+```bash
+python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve --detailed --show-full-plans
 ```
 
-### Con flag --solve
-```
-RESULTS/CONVERTER/cucinare_0525_1430/
-├── extracted_knowledge.json          
-├── generated_up.py                   
-├── generated_domain.pddl             
-├── generated_problem.pddl            
-└── planning_results.txt              # Risultati di pianificazione unificati
-```
+## Output Structure
 
-### Descrizione dei File
-
-| File | Descrizione |
-|------|-------------|
-| `extracted_knowledge.json` | Rappresentazione strutturata della conoscenza estratta dal Prolog |
-| `generated_up.py` | Codice Python che utilizza il framework Unified Planning |
-| `generated_domain.pddl` | File dominio PDDL risultante |
-| `generated_problem.pddl` | File problema PDDL risultante |
-| `planning_results.txt` | Risultati di pianificazione con tabella comparativa e tutti i piani trovati |
-
-## Gestione dei Risultati
-
-Ogni esecuzione del convertitore crea una cartella con timestamp unico:
-- Formato: `{nome_file}_{MMDD_HHMM}`
-- Esempio: `cucinare_0525_1430` per il file `cucinare.pl` eseguito il 25 maggio alle 14:30
-
-## Esempi di Output
-
-### Output Normale (senza --detailed)
+Each run creates a timestamped directory in `RESULTS/CONVERTER/`:
 
 ```
+RESULTS/CONVERTER/cucinare_0830_1430/
+├── extracted_knowledge.json     # Structured knowledge representation
+├── generated_up.py              # Python Unified Planning code  
+├── generated_domain.pddl        # PDDL domain file
+├── generated_problem.pddl       # PDDL problem file
+└── planning_results.txt         # Planning results (if --solve used)
+```
+
+### File Descriptions
+
+| File | Purpose |
+|------|---------|
+| `extracted_knowledge.json` | Intermediate representation of Prolog KB structure |
+| `generated_up.py` | Self-contained Python script using Unified Planning API |
+| `generated_domain.pddl` | Standard PDDL domain compatible with external planners |
+| `generated_problem.pddl` | PDDL problem instance with objects, initial state, goals |
+| `planning_results.txt` | Comprehensive planning results with timing and comparison |
+
+## Configuration
+
+### Algorithm Sets
+
+The system supports multiple planning algorithm configurations via `CONVERTER/planner_config.py`:
+
+- **basic**: `lazy_greedy`, `astar_ff` (fast, reliable)
+- **fast**: Adds `eager_greedy`, `wastar` (balanced speed/quality)  
+- **comprehensive**: Full algorithm suite (thorough evaluation)
+- **research**: Extended set including experimental algorithms
+- **debug**: Minimal set for testing
+
+### Timing and Performance
+
+The orchestrator provides detailed performance analysis:
+
+```
+Total execution time: 1.296 seconds
+  Step 1 (Extraction): 0.009s
+  Step 2 (Signatures): 0.000s  
+  Step 3-4 (JSON): 0.001s
+  Step 5 (UP Code): 0.495s
+  Step 6 (PDDL): 0.635s
+  Step 7 (Planning): 0.157s
+```
+
+## Examples
+
+### Sample Output
+
+```bash
+$ python3 CONVERTER/orchestrator.py PROLOG/cucinare.pl --solve
+
 === Prolog to Unified Planning Conversion Pipeline ===
 Input file: PROLOG/cucinare.pl
-Output directory: RESULTS/CONVERTER/cucinare_0730_1430
+Output directory: RESULTS/CONVERTER/cucinare_0830_1430
 SOLVER: enabled
 DETAILS: disabled, use --detailed to enable
 
 Step 1: Extracting knowledge from Prolog file...
   Completed in 0.008 seconds
 
-Step 2: Analyzing fluent signatures...
+Step 2: Analyzing fluent signatures...  
   Completed in 0.001 seconds
 
-Step 3: Converting knowledge to JSON format...
-Step 4: Saving extracted knowledge to JSON...
-  - Saved to: RESULTS/CONVERTER/cucinare_0730_1430/extracted_knowledge.json
-  Completed in 0.001 seconds
-
-Step 5: Generating Unified Planning code...
-  - Generated UP code: RESULTS/CONVERTER/cucinare_0730_1430/generated_up.py
-  Completed in 0.495 seconds
-
-Step 6: Executing generated UP code to create PDDL files...
-  - Successfully executed generated UP code
-  Completed in 0.635 seconds
+[... additional steps ...]
 
 Step 7: Running PDDL solver...
   - Planning successful! Results saved to planning_results.txt
@@ -445,75 +216,118 @@ Step 7: Running PDDL solver...
       Step  1: (cucina mario pasta pentola tavolo)
       Step  2: (mangia mario pasta)
 
-    * fast_downward_astar_ff:
-      STATUS: Plan found (2 steps)
-      Step  1: (cucina mario pasta pentola tavolo)
-      Step  2: (mangia mario pasta)
-
-  Completed in 0.156 seconds
-
 === Conversion Pipeline Completed Successfully ===
-Generated files in: RESULTS/CONVERTER/cucinare_0730_1430
-  - JSON knowledge: extracted_knowledge.json
-  - UP Python code: generated_up.py
-  - PDDL domain: generated_domain.pddl
-  - PDDL problem: generated_problem.pddl
-  - Planning results: planning_results.txt
-
-Total execution time: 1.29615 seconds
-  Step 1 (Extraction): 0.00853s
-  Step 2 (Signatures): 0.00015s
-  Step 3-4 (JSON): 0.00073s
-  Step 5 (UP Code): 0.49463s
-  Step 6 (PDDL): 0.63534s
-  Step 7 (Planning): 0.15677s
+Total execution time: 1.296 seconds
 ```
 
-### Output con --detailed
+### Prolog Knowledge Base Format
 
-Con il flag `--detailed`, l'output includerà informazioni aggiuntive come:
-- Messaggi di debug con prefisso "DEBUG:"
-- Analisi dettagliata dei fluenti polimorfi
-- Vincoli di tipo per ogni azione
-- Sincronizzazione dell'uso dei fluenti
-- Output completo di tutti i moduli interni
+The system expects Prolog files with the following structure:
 
-## Timing delle Performance
+```prolog
+% Objects and types
+object(mario, person).
+object(pasta, food).
+object(pentola, utensil).
 
-L'orchestrator fornisce informazioni dettagliate sui tempi di esecuzione per ogni fase, permettendo di identificare colli di bottiglia nel processo di conversione:
+% Initial state facts  
+at_initial_state(hungry(mario)).
+at_initial_state(available(pasta)).
+
+% Goal specification
+goal(satisfied(mario)).
+
+% Action definitions
+action(cucina(Person, Food, Utensil, Place),
+       [hungry(Person), available(Food), clean(Utensil)],  % Preconditions
+       [cooked(Food), dirty(Utensil)],                     % Add effects
+       [available(Food), clean(Utensil)]).                 % Delete effects
+```
+
+## Project Structure
 
 ```
-Total execution time: 1.30857 seconds
-  Step 1 (Extraction): 0.00788s     # Estrazione da Prolog
-  Step 2 (Signatures): 0.00029s     # Analisi firme fluenti
-  Step 3-4 (JSON): 0.00064s         # Conversione JSON
-  Step 5 (UP Code): 0.46544s        # Generazione codice UP
-  Step 6 (PDDL): 0.63290s           # Creazione file PDDL
-  Step 7 (Planning): 0.20131s       # Pianificazione (se --solve)
+.
+├── CONVERTER/                    # Main conversion system
+│   ├── orchestrator.py          # Main entry point and coordination
+│   ├── prolog_extractor.py      # Prolog knowledge extraction
+│   ├── kb_to_json.py            # JSON intermediate conversion
+│   ├── prolog2up_V2.py          # UP code generation
+│   ├── planner_config.py        # Algorithm configuration
+│   └── requirements.txt         # Python dependencies
+├── PROLOG/                      # Sample Prolog knowledge bases
+│   ├── cucinare.pl             # Cooking domain example
+│   ├── entrare.pl              # Room entry example  
+│   └── medic.pl                # Medical domain example
+├── PDDL/                       # Legacy PDDL utilities
+│   └── run_plan.py             # PDDL solver wrapper
+├── UNIFIED_PLANNING/           # UP framework examples
+├── RESULTS/                    # Generated outputs
+│   └── CONVERTER/              # Timestamped conversion results
+└── README.md                   # This file
 ```
 
-## Workflow Completo di Utilizzo
+## Advanced Usage
 
-### Setup Iniziale (Una volta)
+### Working with Complex Domains
+
+For knowledge bases with complex structure, use detailed mode to inspect the conversion process:
 
 ```bash
-# 1. Clone del repository e navigazione
-cd path/to/RoboticsInternship
-
-# 2. Creazione virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# 3. Installazione dipendenze Python
-pip3 install -r requirements.txt
-
-# 4. Installazione SWI-Prolog (sistema)
-brew install swi-prolog  # macOS
-
-# 5. Installazione Fast Downward (opzionale, per planning)
-git clone https://github.com/aibasel/downward.git
-cd downward && ./build.py && cd ..
-
-# 6. Verifica installazione
-python3 -c "import unified_planning; from pyswip import Prolog; print('Setup OK')"
+python3 CONVERTER/orchestrator.py PROLOG/complex_domain.pl --detailed --solve
 ```
+
+### Batch Processing
+
+Process multiple knowledge bases:
+
+```bash
+for kb in PROLOG/*.pl; do
+    echo "Processing $kb..."
+    python3 CONVERTER/orchestrator.py "$kb" --solve
+done
+```
+
+### Integration with External Tools
+
+The generated PDDL files are compatible with standard planners:
+
+```bash
+# Use with external planner
+./external_planner generated_domain.pddl generated_problem.pddl
+
+# Import generated UP code in Python
+from generated_up import create_problem, solve_problem
+problem = create_problem()
+result = solve_problem(problem)
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **SWI-Prolog not found**: Ensure SWI-Prolog is installed and in PATH
+2. **Import errors**: Verify all dependencies are installed in virtual environment
+3. **Planning failures**: Check PDDL files are valid using `--detailed` flag
+4. **Timeout errors**: Large problems may need increased timeout settings
+
+### Debug Mode
+
+Use `--detailed` flag for comprehensive debugging information:
+
+```bash
+python3 CONVERTER/orchestrator.py PROLOG/problem.pl --detailed --solve
+```
+
+This provides:
+- Step-by-step progress with DEBUG messages
+- Detailed fluent analysis
+- Type constraint validation  
+- Complete planner output
+- Performance bottleneck identification
+
+---
+
+**Repository**: https://github.com/KubaD4/prolog2up  
+**License**: Apache 2.0  
+**Requirements**: Python 3.8+, SWI-Prolog, Unified Planning framework
